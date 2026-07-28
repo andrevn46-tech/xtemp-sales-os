@@ -434,3 +434,31 @@ export async function saveCommissionTiersAction(formData: FormData) {
   revalidatePath("/commission");
   revalidatePath("/commission/tiers");
 }
+
+/** Permanently deletes a deal and its activity log. Used for cleaning up test data. */
+export async function deleteDealAction(formData: FormData) {
+  const dealId = str(formData, "deal_id")!;
+  const supabase = await createClient();
+
+  const { error } = await supabase.from("deals").delete().eq("id", dealId);
+  if (error) throw error;
+
+  revalidatePath("/");
+  revalidatePath("/leads");
+  revalidatePath("/pipeline");
+  revalidatePath("/commission");
+  redirect("/leads");
+}
+
+/** Permanently deletes a contact and its activity log. Used for cleaning up test data. */
+export async function deleteContactAction(formData: FormData) {
+  const contactId = str(formData, "contact_id")!;
+  const supabase = await createClient();
+
+  const { error } = await supabase.from("contacts").delete().eq("id", contactId);
+  if (error) throw error;
+
+  revalidatePath("/");
+  revalidatePath("/contacts");
+  redirect("/contacts");
+}

@@ -1,17 +1,28 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import { LayoutGrid, KanbanSquare, Users, Plus, PhoneCall, Wallet } from "lucide-react";
+import { LayoutGrid, KanbanSquare, Users, Plus, PhoneCall, Wallet, UserPlus } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { SignOutButton } from "./sign-out-button";
 
-const NAV = [
-  { href: "/", label: "Dashboard", icon: LayoutGrid },
-  { href: "/pipeline", label: "Pipeline", icon: KanbanSquare },
-  { href: "/leads", label: "Leads", icon: Users },
-  { href: "/contacts", label: "Contacts", icon: PhoneCall },
-  { href: "/commission", label: "Commission", icon: Wallet },
+const SECTIONS: { label: string | null; items: { href: string; label: string; icon: typeof LayoutGrid }[] }[] = [
+  {
+    label: null,
+    items: [{ href: "/", label: "Dashboard", icon: LayoutGrid }],
+  },
+  {
+    label: "Pipeline",
+    items: [
+      { href: "/pipeline", label: "Pipeline board", icon: KanbanSquare },
+      { href: "/leads", label: "Leads", icon: Users },
+      { href: "/commission", label: "Commission", icon: Wallet },
+    ],
+  },
+  {
+    label: "Contacts",
+    items: [{ href: "/contacts", label: "All contacts", icon: PhoneCall }],
+  },
 ];
 
 export function Sidebar({ userEmail }: { userEmail: string | null }) {
@@ -26,7 +37,7 @@ export function Sidebar({ userEmail }: { userEmail: string | null }) {
         </div>
       </div>
 
-      <div className="px-3 pt-4">
+      <div className="px-3 pt-4 flex flex-col gap-2">
         <Link
           href="/leads/new"
           className="flex items-center justify-center gap-1.5 rounded-md bg-signal text-panel font-medium text-sm px-3 py-2 hover:opacity-90 transition-opacity"
@@ -34,27 +45,43 @@ export function Sidebar({ userEmail }: { userEmail: string | null }) {
           <Plus size={16} />
           New lead
         </Link>
+        <Link
+          href="/contacts/new"
+          className="flex items-center justify-center gap-1.5 rounded-md border border-panel-line text-panel-ink font-medium text-sm px-3 py-2 hover:bg-panel-raised transition-colors"
+        >
+          <UserPlus size={16} />
+          New contact
+        </Link>
       </div>
 
-      <nav className="flex-1 px-3 py-5 flex flex-col gap-1">
-        {NAV.map(({ href, label, icon: Icon }) => {
-          const active = href === "/" ? pathname === "/" : pathname.startsWith(href);
-          return (
-            <Link
-              key={href}
-              href={href}
-              className={cn(
-                "flex items-center gap-2.5 rounded-md px-3 py-2 text-sm transition-colors",
-                active
-                  ? "bg-panel-raised text-panel-ink font-medium"
-                  : "text-panel-ink-dim hover:bg-panel-raised/60 hover:text-panel-ink"
-              )}
-            >
-              <Icon size={16} />
-              {label}
-            </Link>
-          );
-        })}
+      <nav className="flex-1 px-3 py-5 flex flex-col gap-5 overflow-y-auto">
+        {SECTIONS.map((section, i) => (
+          <div key={i} className="flex flex-col gap-1">
+            {section.label && (
+              <div className="px-3 pb-1 text-[10px] font-mono uppercase tracking-widest text-panel-ink-dim">
+                {section.label}
+              </div>
+            )}
+            {section.items.map(({ href, label, icon: Icon }) => {
+              const active = href === "/" ? pathname === "/" : pathname.startsWith(href);
+              return (
+                <Link
+                  key={href}
+                  href={href}
+                  className={cn(
+                    "flex items-center gap-2.5 rounded-md px-3 py-2 text-sm transition-colors",
+                    active
+                      ? "bg-panel-raised text-panel-ink font-medium"
+                      : "text-panel-ink-dim hover:bg-panel-raised/60 hover:text-panel-ink"
+                  )}
+                >
+                  <Icon size={16} />
+                  {label}
+                </Link>
+              );
+            })}
+          </div>
+        ))}
       </nav>
 
       <div className="px-5 py-4 border-t border-panel-line flex items-center justify-between">
