@@ -1,7 +1,7 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import { LayoutGrid, KanbanSquare, Users, Plus } from "lucide-react";
+import { LayoutGrid, KanbanSquare, Users, Plus, PhoneCall, Wallet } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { SignOutButton } from "./sign-out-button";
@@ -10,13 +10,15 @@ const NAV = [
   { href: "/", label: "Dashboard", icon: LayoutGrid },
   { href: "/pipeline", label: "Pipeline", icon: KanbanSquare },
   { href: "/leads", label: "Leads", icon: Users },
+  { href: "/contacts", label: "Contacts", icon: PhoneCall },
+  { href: "/commission", label: "Commission", icon: Wallet },
 ];
 
 export function Sidebar({ userEmail }: { userEmail: string | null }) {
   const pathname = usePathname();
 
   return (
-    <aside className="w-60 shrink-0 bg-panel text-panel-ink flex flex-col h-screen sticky top-0">
+    <aside className="w-60 shrink-0 bg-panel text-panel-ink flex flex-col h-screen sticky top-0 no-print">
       <div className="px-5 pt-6 pb-5 border-b border-panel-line">
         <div className="font-display font-bold text-lg tracking-tight">XTEMP</div>
         <div className="text-[11px] font-mono uppercase tracking-widest text-signal">

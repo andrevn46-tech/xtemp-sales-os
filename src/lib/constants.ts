@@ -1,4 +1,4 @@
-import type { DealStage, Industry, NextActionType, ProductLine } from "./types";
+import type { ContactStatus, DealStage, Industry, NextActionType, ProductLine } from "./types";
 
 export const STAGE_META: Record<
   DealStage,
@@ -84,6 +84,30 @@ export const TECHNICAL_TAG_SUGGESTIONS = [
 ];
 
 export const STALE_DAYS_THRESHOLD = 10; // no activity + no next action inside this window -> flagged on dashboard
+
+export const CONTACT_STATUS_META: Record<
+  ContactStatus,
+  { label: string; color: "wire" | "amber" | "signal" | "alert" | "ink" }
+> = {
+  new: { label: "New contact", color: "wire" },
+  contacted: { label: "Contacted", color: "wire" },
+  qualifying: { label: "Qualifying", color: "amber" },
+  promoted: { label: "Promoted", color: "signal" },
+  not_a_fit: { label: "Not a fit", color: "alert" },
+};
+
+// Every new contact defaults to a follow-up call in 3 days — deliberately a
+// little looser than a qualified deal's cadence, since these are cooler leads.
+export const CONTACT_FOLLOWUP_DEFAULT: { days: number; type: NextActionType } = {
+  days: 3,
+  type: "call",
+};
+
+export function suggestedContactFollowUp(): { type: NextActionType; date: string } {
+  const d = new Date();
+  d.setDate(d.getDate() + CONTACT_FOLLOWUP_DEFAULT.days);
+  return { type: CONTACT_FOLLOWUP_DEFAULT.type, date: d.toISOString().slice(0, 10) };
+}
 
 export function suggestedFollowUp(stage: DealStage): { type: NextActionType; date: string } {
   const rule = STAGE_FOLLOWUP_DEFAULTS[stage];

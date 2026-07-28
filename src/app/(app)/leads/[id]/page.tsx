@@ -4,7 +4,7 @@ import { OutcomeControls } from "@/components/leads/outcome-controls";
 import { StageSelect } from "@/components/leads/stage-select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { INDUSTRY_META, suggestedFollowUp } from "@/lib/constants";
-import { getDeal } from "@/lib/data";
+import { getDeal, getCommissionTiers } from "@/lib/data";
 import { createClient } from "@/lib/supabase/server";
 import { formatDate, formatZAR, isOverdue, isDueToday, relativeDayLabel, cn } from "@/lib/utils";
 import { Building2, Mail, Phone, Link2, ExternalLink } from "lucide-react";
@@ -27,6 +27,7 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
   const overdue = isOverdue(deal.next_action_date);
   const dueToday = isDueToday(deal.next_action_date);
   const isTerminal = deal.stage === "won" || deal.stage === "lost";
+  const tiers = isTerminal ? [] : await getCommissionTiers(supabase);
 
   return (
     <div className="flex flex-col gap-6">
@@ -45,7 +46,9 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
             </div>
             <h1 className="font-display text-2xl font-semibold text-ink">{deal.title}</h1>
           </div>
-          {!isTerminal && <OutcomeControls dealId={deal.id} />}
+          {!isTerminal && (
+            <OutcomeControls dealId={deal.id} estimatedValue={deal.estimated_value_zar} tiers={tiers} />
+          )}
         </div>
         {deal.stage === "lost" && deal.lost_reason && (
           <p className="text-xs text-alert mt-2">Lost: {deal.lost_reason}</p>
@@ -177,6 +180,25 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
               <CardTitle>Deal info</CardTitle>
             </CardHeader>
             <CardContent className="flex flex-col gap-2 text-xs text-ink-dim">
+              {deal.stage === "won" && (
+                <>
+                  <div className="flex justify-between">
+                    <span>Actual value</span>
+                    <span className="text-ink font-mono">{formatZAR(deal.actual_value_zar)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Commission rate</span>
+                    <span className="text-ink font-mono">{deal.commission_rate_percent}%</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Commission</span>
+                    <span className="text-signal font-mono font-semibold">
+                      {formatZAR(deal.commission_amount_zar)}
+                    </span>
+                  </div>
+                  <div className="border-t border-line my-1" />
+                </>
+              )}
               <div className="flex justify-between">
                 <span>Source</span>
                 <span className="text-ink">{deal.source?.replace("_", " ") ?? "—"}</span>

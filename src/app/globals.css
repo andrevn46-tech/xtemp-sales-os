@@ -91,3 +91,12 @@ body {
   outline: 2px solid var(--wire);
   outline-offset: 2px;
 }
+
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  body {
+    background: white;
+  }
+}

@@ -7,6 +7,10 @@ export type Industry =
   | "aerospace"
   | "general_industrial";
 
+export type ContactStatus = "new" | "contacted" | "qualifying" | "promoted" | "not_a_fit";
+
+export const OPEN_CONTACT_STATUSES: ContactStatus[] = ["new", "contacted", "qualifying"];
+
 export type DealStage =
   | "new"
   | "contacted"
@@ -50,7 +54,7 @@ export interface Organization {
 
 export interface Contact {
   id: string;
-  organization_id: string;
+  organization_id: string | null;
   name: string;
   title: string | null;
   email: string | null;
@@ -58,7 +62,31 @@ export interface Contact {
   linkedin_url: string | null;
   is_primary: boolean;
   notes: string | null;
+  status: ContactStatus;
+  industry: Industry | null;
+  source: string | null;
+  next_action_type: NextActionType | null;
+  next_action_date: string | null;
+  next_action_note: string | null;
   created_at: string;
+}
+
+export interface ContactWithOrganization extends Contact {
+  organization: Organization | null;
+}
+
+/** A normalized shape used to render deal and contact reminders side by side. */
+export interface ReminderItem {
+  id: string;
+  kind: "deal" | "contact";
+  href: string;
+  title: string;
+  subtitle: string;
+  badgeLabel: string;
+  next_action_type: NextActionType | null;
+  next_action_date: string | null;
+  next_action_note: string | null;
+  value?: number | null;
 }
 
 export interface Deal {
@@ -76,13 +104,25 @@ export interface Deal {
   next_action_note: string | null;
   stage_entered_at: string;
   lost_reason: string | null;
+  actual_value_zar: number | null;
+  commission_rate_percent: number | null;
+  commission_amount_zar: number | null;
   created_at: string;
   updated_at: string;
 }
 
+export interface CommissionTier {
+  id: string;
+  min_value: number;
+  max_value: number | null;
+  rate_percent: number;
+  sort_order: number;
+}
+
 export interface Activity {
   id: string;
-  deal_id: string;
+  deal_id: string | null;
+  contact_id: string | null;
   type: ActivityType;
   notes: string;
   technical_tags: string[];

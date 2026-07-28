@@ -66,6 +66,34 @@ environment variables in the Vercel project settings, and add your
 `https://your-app.vercel.app/auth/callback` URL to Supabase's redirect
 allow-list. Deploy.
 
+## Contacts — everyone you speak to, before it's a real deal
+
+A Contact needs no company and no deal — just a name and a follow-up date.
+Each one has its own status (New → Contacted → Qualifying) and its own
+next-action reminder, shown on the Dashboard right alongside your deal
+follow-ups. When something real comes of it, click **Promote to deal** on the
+contact — it asks for the company, product, and value, creates the deal, and
+marks the contact as promoted so it drops off your active list. Dead ends can
+be marked **Not a fit** to archive them without deleting anything.
+
+## Commission
+
+Commission is calculated per deal, from a tiered rate table applied to that
+deal's own actual value (flat rate on the whole amount, not stacked like a
+tax bracket — whichever tier the value falls into, that tier's rate applies
+to the full amount). When you mark a deal **Won**, you enter the actual sale
+value and the app looks up the matching tier and calculates the commission
+automatically — you can override either the rate or the final amount if a
+particular deal is a manual exception.
+
+- **Commission → Rate table** lets you edit the tiers yourself whenever your
+  commission plan changes — no code change or redeploy needed.
+- **Commission** (main page) shows a yearly overview: total sales and
+  commission per month, with a chart, and links into each month.
+- Click into any month for a clean, printable report (Company / Deal / Value
+  / Rate / Commission, with totals) — the **Print / Save as PDF** button uses
+  your browser's built-in print-to-PDF, so there's nothing extra to install.
+
 ## Adding a teammate
 
 Since this is a shared workspace, anyone with a login can see and edit
