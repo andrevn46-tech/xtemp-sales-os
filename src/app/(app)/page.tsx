@@ -4,10 +4,18 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { MetricCard } from "@/components/ui/metric-card";
 import { ButtonLink } from "@/components/ui/button";
 import { getOpenDeals, getOpenContacts, getWonDealsForMonth } from "@/lib/data";
-import { mergeReminders } from "@/lib/reminders";
+import { contactToReminder, dealToReminder, mergeReminders } from "@/lib/reminders";
 import { createClient } from "@/lib/supabase/server";
 import { formatZAR, isDueToday, isOverdue, daysFromToday } from "@/lib/utils";
 import { AlertTriangle } from "lucide-react";
+
+function sortByDate<T extends { next_action_date: string | null }>(items: T[]): T[] {
+  return [...items].sort((a, b) => {
+    if (!a.next_action_date) return 1;
+    if (!b.next_action_date) return -1;
+    return a.next_action_date < b.next_action_date ? -1 : 1;
+  });
+}
 
 export default async function DashboardPage() {
   const supabase = await createClient();
@@ -17,23 +25,43 @@ export default async function DashboardPage() {
     getOpenContacts(supabase),
     getWonDealsForMonth(supabase, now.getFullYear(), now.getMonth() + 1),
   ]);
+
+  // Used for the top metrics and the "no next action" alert, where combining
+  // deals and contacts into one count/list still makes sense.
   const reminders = mergeReminders(deals, contacts);
   const commissionThisMonth = wonThisMonth.reduce((s, d) => s + (d.commission_amount_zar ?? 0), 0);
 
-  const dueTodayOrOverdue = reminders.filter(
+  // Used for the actual lists below — kept separate per pipeline rather than
+  // interleaved together.
+  const dealReminders = sortByDate(deals.map(dealToReminder));
+  const contactReminders = sortByDate(contacts.map(contactToReminder));
+
+  const dealsDueTodayOrOverdue = dealReminders.filter(
+    (r) => r.next_action_date && (isDueToday(r.next_action_date) || isOverdue(r.next_action_date))
+  );
+  const contactsDueTodayOrOverdue = contactReminders.filter(
     (r) => r.next_action_date && (isDueToday(r.next_action_date) || isOverdue(r.next_action_date))
   );
 
-  const callsToday = reminders.filter((r) => r.next_action_type === "call" && isDueToday(r.next_action_date));
-  const overdueCount = reminders.filter((r) => isOverdue(r.next_action_date)).length;
-
-  const meetingsThisWeek = reminders.filter(
+  const dealMeetingsThisWeek = dealReminders.filter(
     (r) =>
       r.next_action_type === "meeting" &&
       r.next_action_date &&
       daysFromToday(r.next_action_date) >= 0 &&
       daysFromToday(r.next_action_date) <= 7
   );
+  const contactMeetingsThisWeek = contactReminders.filter(
+    (r) =>
+      r.next_action_type === "meeting" &&
+      r.next_action_date &&
+      daysFromToday(r.next_action_date) >= 0 &&
+      daysFromToday(r.next_action_date) <= 7
+  );
+
+  const callsToday = reminders.filter((r) => r.next_action_type === "call" && isDueToday(r.next_action_date));
+  const overdueCount = reminders.filter((r) => isOverdue(r.next_action_date)).length;
+  const dueTodayOrOverdueCount = dealsDueTodayOrOverdue.length + contactsDueTodayOrOverdue.length;
+  const meetingsThisWeekCount = dealMeetingsThisWeek.length + contactMeetingsThisWeek.length;
 
   const pipelineValue = deals.reduce((sum, d) => sum + (d.estimated_value_zar ?? 0), 0);
 
@@ -60,14 +88,14 @@ export default async function DashboardPage() {
         />
         <MetricCard
           label="Follow-ups due"
-          value={String(dueTodayOrOverdue.length)}
+          value={String(dueTodayOrOverdueCount)}
           sub={overdueCount > 0 ? `${overdueCount} overdue` : "deals + contacts"}
-          tone={overdueCount > 0 ? "alert" : dueTodayOrOverdue.length > 0 ? "amber" : "neutral"}
+          tone={overdueCount > 0 ? "alert" : dueTodayOrOverdueCount > 0 ? "amber" : "neutral"}
         />
         <MetricCard
           label="Meetings, 7 days"
-          value={String(meetingsThisWeek.length)}
-          tone={meetingsThisWeek.length > 0 ? "signal" : "neutral"}
+          value={String(meetingsThisWeekCount)}
+          tone={meetingsThisWeekCount > 0 ? "signal" : "neutral"}
         />
         <MetricCard label="Open pipeline value" value={formatZAR(pipelineValue)} sub={`${deals.length} open deals`} />
         <MetricCard
@@ -99,42 +127,61 @@ export default async function DashboardPage() {
         </div>
       )}
 
-      <div className="grid lg:grid-cols-3 gap-6">
-        <Card className="lg:col-span-2">
+      <div className="grid lg:grid-cols-2 gap-6">
+        <Card>
           <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle>Today &amp; overdue</CardTitle>
-            <div className="flex gap-3">
-              <ButtonLink href="/contacts" variant="ghost" size="sm">
-                Contacts
-              </ButtonLink>
-              <ButtonLink href="/leads" variant="ghost" size="sm">
-                Leads
-              </ButtonLink>
-            </div>
+            <CardTitle>Leads — today &amp; overdue</CardTitle>
+            <ButtonLink href="/leads" variant="ghost" size="sm">
+              View all
+            </ButtonLink>
           </CardHeader>
           <CardContent>
-            {dueTodayOrOverdue.length === 0 ? (
-              <EmptyState
-                title="Nothing due today"
-                body="You're caught up. New calls and follow-ups will surface here as they come due."
-              />
+            {dealsDueTodayOrOverdue.length === 0 ? (
+              <EmptyState title="Nothing due today" body="Deal follow-ups will surface here as they come due." />
             ) : (
-              dueTodayOrOverdue.map((item) => <ReminderRow key={`${item.kind}-${item.id}`} item={item} />)
+              dealsDueTodayOrOverdue.map((item) => <ReminderRow key={item.id} item={item} />)
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between">
+            <CardTitle>Contacts — today &amp; overdue</CardTitle>
+            <ButtonLink href="/contacts" variant="ghost" size="sm">
+              View all
+            </ButtonLink>
+          </CardHeader>
+          <CardContent>
+            {contactsDueTodayOrOverdue.length === 0 ? (
+              <EmptyState title="Nothing due today" body="Contact follow-ups will surface here as they come due." />
+            ) : (
+              contactsDueTodayOrOverdue.map((item) => <ReminderRow key={item.id} item={item} />)
             )}
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader>
-            <CardTitle>Meetings, next 7 days</CardTitle>
+            <CardTitle>Leads — meetings, next 7 days</CardTitle>
           </CardHeader>
           <CardContent>
-            {meetingsThisWeek.length === 0 ? (
-              <EmptyState title="No meetings booked" body="Meetings you schedule will show up here." />
+            {dealMeetingsThisWeek.length === 0 ? (
+              <EmptyState title="No meetings booked" body="Deal meetings you schedule will show up here." />
             ) : (
-              meetingsThisWeek.map((item) => (
-                <ReminderRow key={`${item.kind}-${item.id}`} item={item} showReschedule={false} />
-              ))
+              dealMeetingsThisWeek.map((item) => <ReminderRow key={item.id} item={item} showReschedule={false} />)
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Contacts — meetings, next 7 days</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {contactMeetingsThisWeek.length === 0 ? (
+              <EmptyState title="No meetings booked" body="Contact meetings you schedule will show up here." />
+            ) : (
+              contactMeetingsThisWeek.map((item) => <ReminderRow key={item.id} item={item} showReschedule={false} />)
             )}
           </CardContent>
         </Card>

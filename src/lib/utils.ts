@@ -9,7 +9,8 @@ export function formatZAR(value: number | null | undefined): string {
   return new Intl.NumberFormat("en-ZA", {
     style: "currency",
     currency: "ZAR",
-    maximumFractionDigits: 0,
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
   }).format(value);
 }
 
