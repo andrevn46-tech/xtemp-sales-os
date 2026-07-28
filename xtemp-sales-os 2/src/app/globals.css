@@ -1,0 +1,102 @@
+@import "tailwindcss";
+
+/*
+  Design concept: "instrument bezel + chart paper"
+  Inspired by the DAQ hardware XTEMP sells — a dark anodized instrument
+  panel with amber/green LED status indicators, paired with the pale
+  chart-paper of a measurement printout. Numerics render in a mono
+  typeface everywhere, like a digital readout.
+*/
+
+:root {
+  --paper: #f7f6f2;
+  --paper-raised: #ffffff;
+  --ink: #171e29;
+  --ink-dim: #5b6472;
+  --line: #e4e1d6;
+
+  --panel: #0c1420;
+  --panel-raised: #141e2d;
+  --panel-line: #263447;
+  --panel-ink: #eef1f5;
+  --panel-ink-dim: #8b96a5;
+
+  --signal: #2fbd85;
+  --signal-dim: #e6f6ef;
+  --amber: #e6982a;
+  --amber-dim: #fbf0dd;
+  --alert: #de5b53;
+  --alert-dim: #fbe9e7;
+  --wire: #3a6ea5;
+  --wire-dim: #e8f0f9;
+
+  --font-display: var(--font-space-grotesk);
+  --font-body: var(--font-inter);
+  --font-mono: var(--font-jetbrains-mono);
+}
+
+@theme inline {
+  --color-paper: var(--paper);
+  --color-paper-raised: var(--paper-raised);
+  --color-ink: var(--ink);
+  --color-ink-dim: var(--ink-dim);
+  --color-line: var(--line);
+
+  --color-panel: var(--panel);
+  --color-panel-raised: var(--panel-raised);
+  --color-panel-line: var(--panel-line);
+  --color-panel-ink: var(--panel-ink);
+  --color-panel-ink-dim: var(--panel-ink-dim);
+
+  --color-signal: var(--signal);
+  --color-signal-dim: var(--signal-dim);
+  --color-amber: var(--amber);
+  --color-amber-dim: var(--amber-dim);
+  --color-alert: var(--alert);
+  --color-alert-dim: var(--alert-dim);
+  --color-wire: var(--wire);
+  --color-wire-dim: var(--wire-dim);
+
+  --font-display: var(--font-display);
+  --font-body: var(--font-body);
+  --font-mono: var(--font-mono);
+}
+
+body {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-body);
+}
+
+/* Signature element: thin waveform rule used as a section divider */
+.trace-rule {
+  height: 8px;
+  width: 100%;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='8' viewBox='0 0 120 8'%3E%3Cpath d='M0 4 L10 4 L14 1 L18 7 L22 4 L34 4 L38 1 L42 7 L46 4 L120 4' fill='none' stroke='%232fbd85' stroke-width='1' opacity='0.55'/%3E%3C/svg%3E");
+  background-repeat: repeat-x;
+  background-size: 120px 8px;
+}
+
+::selection {
+  background: var(--signal-dim);
+  color: var(--ink);
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--line) transparent;
+}
+
+:focus-visible {
+  outline: 2px solid var(--wire);
+  outline-offset: 2px;
+}
+
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  body {
+    background: white;
+  }
+}
