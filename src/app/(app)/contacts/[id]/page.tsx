@@ -4,7 +4,9 @@ import { NotAFitButton } from "@/components/contacts/not-a-fit-button";
 import { PromoteForm } from "@/components/contacts/promote-form";
 import { ActivityTimeline } from "@/components/leads/activity-timeline";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { DeleteButton } from "@/components/ui/delete-button";
 import { suggestedContactFollowUp } from "@/lib/constants";
+import { deleteContactAction } from "@/lib/actions";
 import { getContact, getOrganizations } from "@/lib/data";
 import { createClient } from "@/lib/supabase/server";
 import { formatDate, isOverdue, isDueToday, relativeDayLabel, cn } from "@/lib/utils";
@@ -41,17 +43,26 @@ export default async function ContactDetailPage({ params }: { params: Promise<{ 
             <h1 className="font-display text-2xl font-semibold text-ink">{contact.name}</h1>
             {contact.title && <p className="text-sm text-ink-dim">{contact.title}</p>}
           </div>
-          {!isClosed && (
-            <div className="flex items-center gap-2">
-              <PromoteForm
-                contactId={contact.id}
-                contactName={contact.name}
-                organizations={organizations}
-                knownIndustry={contact.industry}
-              />
-              <NotAFitButton contactId={contact.id} />
-            </div>
-          )}
+          <div className="flex flex-col items-end gap-2">
+            {!isClosed && (
+              <div className="flex items-center gap-2">
+                <PromoteForm
+                  contactId={contact.id}
+                  contactName={contact.name}
+                  organizations={organizations}
+                  knownIndustry={contact.industry}
+                />
+                <NotAFitButton contactId={contact.id} />
+              </div>
+            )}
+            <DeleteButton
+              action={deleteContactAction}
+              idFieldName="contact_id"
+              idValue={contact.id}
+              label="Delete contact"
+              confirmLabel="Delete this contact and its history?"
+            />
+          </div>
         </div>
       </div>
 

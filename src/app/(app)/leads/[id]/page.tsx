@@ -3,7 +3,9 @@ import { ActivityTimeline } from "@/components/leads/activity-timeline";
 import { OutcomeControls } from "@/components/leads/outcome-controls";
 import { StageSelect } from "@/components/leads/stage-select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { DeleteButton } from "@/components/ui/delete-button";
 import { INDUSTRY_META, suggestedFollowUp } from "@/lib/constants";
+import { deleteDealAction } from "@/lib/actions";
 import { getDeal, getCommissionTiers } from "@/lib/data";
 import { createClient } from "@/lib/supabase/server";
 import { formatDate, formatZAR, isOverdue, isDueToday, relativeDayLabel, cn } from "@/lib/utils";
@@ -46,9 +48,18 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
             </div>
             <h1 className="font-display text-2xl font-semibold text-ink">{deal.title}</h1>
           </div>
-          {!isTerminal && (
-            <OutcomeControls dealId={deal.id} estimatedValue={deal.estimated_value_zar} tiers={tiers} />
-          )}
+          <div className="flex flex-col items-end gap-2">
+            {!isTerminal && (
+              <OutcomeControls dealId={deal.id} estimatedValue={deal.estimated_value_zar} tiers={tiers} />
+            )}
+            <DeleteButton
+              action={deleteDealAction}
+              idFieldName="deal_id"
+              idValue={deal.id}
+              label="Delete deal"
+              confirmLabel="Delete this deal and its history?"
+            />
+          </div>
         </div>
         {deal.stage === "lost" && deal.lost_reason && (
           <p className="text-xs text-alert mt-2">Lost: {deal.lost_reason}</p>
