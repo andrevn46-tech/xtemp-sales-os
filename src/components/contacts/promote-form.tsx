@@ -132,7 +132,7 @@ export function PromoteForm({
         {tracksForecast && (
           <>
             <Field label="Estimated value" htmlFor="estimated_value_zar" hint="ZAR">
-              <Input id="estimated_value_zar" name="estimated_value_zar" type="number" min="0" step="1000" />
+              <Input id="estimated_value_zar" name="estimated_value_zar" type="number" min="0" step="0.01" />
             </Field>
             <Field label="Win probability" htmlFor="probability" hint="%">
               <Input id="probability" name="probability" type="number" min="0" max="100" defaultValue={20} />

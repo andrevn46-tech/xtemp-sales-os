@@ -147,7 +147,7 @@ export default async function NewDealPage({ params }: { params: Promise<{ worksp
             {workspace.tracks_forecast && (
               <>
                 <Field label="Estimated value" htmlFor="estimated_value_zar" hint="ZAR">
-                  <Input id="estimated_value_zar" name="estimated_value_zar" type="number" min="0" step="1000" />
+                  <Input id="estimated_value_zar" name="estimated_value_zar" type="number" min="0" step="0.01" />
                 </Field>
                 <Field label="Win probability" htmlFor="probability" hint="%">
                   <Input

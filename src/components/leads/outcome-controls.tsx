@@ -103,7 +103,7 @@ export function OutcomeControls({
             type="number"
             name="actual_value_zar"
             min="0"
-            step="1000"
+            step="0.01"
             required
             value={actualValue}
             onChange={(e) => {
@@ -142,7 +142,7 @@ export function OutcomeControls({
               type="number"
               name="commission_amount_zar"
               min="0"
-              step="1"
+              step="0.01"
               value={effectiveAmount}
               onChange={(e) => setAmountOverride(e.target.value)}
               className="text-sm border border-line rounded-md px-3 py-2 bg-paper-raised font-mono"
