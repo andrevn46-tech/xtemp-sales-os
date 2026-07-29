@@ -4,6 +4,7 @@ import { NotAFitButton } from "@/components/contacts/not-a-fit-button";
 import { PromoteForm } from "@/components/contacts/promote-form";
 import { ActivityTimeline } from "@/components/leads/activity-timeline";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ButtonLink } from "@/components/ui/button";
 import { DeleteButton } from "@/components/ui/delete-button";
 import { SALE_TYPE_META, suggestedContactFollowUp } from "@/lib/constants";
 import { deleteContactAction } from "@/lib/actions";
@@ -53,6 +54,9 @@ export default async function ContactDetailPage({
             {contact.title && <p className="text-sm text-ink-dim">{contact.title}</p>}
           </div>
           <div className="flex flex-col items-end gap-2">
+            <ButtonLink href={`/${slug}/contacts/${contact.id}/edit`} variant="secondary" size="sm">
+              Edit
+            </ButtonLink>
             {!isClosed && (
               <div className="flex items-center gap-2">
                 <PromoteForm
@@ -61,6 +65,7 @@ export default async function ContactDetailPage({
                   workspaceSlug={slug}
                   requiresOrganization={workspace.requires_organization}
                   tracksSaleType={workspace.tracks_sale_type}
+                  tracksForecast={workspace.tracks_forecast}
                   knownSaleType={contact.sale_type}
                   organizations={organizations}
                   knownIndustry={contact.industry}

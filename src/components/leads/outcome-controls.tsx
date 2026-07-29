@@ -151,7 +151,7 @@ export function OutcomeControls({
         </div>
         <p className="text-[11px] text-ink-dim">
           {computed.isFlat
-            ? "Flat amount from your commission rate table — override if this deal is a manual exception."
+            ? "Flat amount from your commission rate table — override if this one's a manual exception."
             : "Auto-calculated from your commission tier table — override either field if this one's different."}
         </p>
 

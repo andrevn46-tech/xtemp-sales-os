@@ -1,6 +1,7 @@
 import { MonthlyBarChart } from "@/components/commission/monthly-bar-chart";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ButtonLink } from "@/components/ui/button";
+import { dealNounFor } from "@/lib/constants";
 import { getWonDealsForYear, getWorkspace } from "@/lib/data";
 import { createClient } from "@/lib/supabase/server";
 import { formatZAR } from "@/lib/utils";
@@ -27,6 +28,7 @@ export default async function CommissionPage({
   const supabase = await createClient();
   const workspace = await getWorkspace(supabase, slug);
   if (!workspace) notFound();
+  const noun = dealNounFor(workspace.tracks_forecast);
 
   const wonDeals = await getWonDealsForYear(supabase, workspace.id, year);
 
@@ -76,7 +78,7 @@ export default async function CommissionPage({
 
       <div className="grid grid-cols-3 gap-4">
         <div className="rounded-lg border border-line bg-paper-raised px-5 py-4">
-          <span className="text-[11px] font-medium uppercase tracking-wider text-ink-dim">Deals won</span>
+          <span className="text-[11px] font-medium uppercase tracking-wider text-ink-dim">{noun.capital}s won</span>
           <p className="font-mono text-2xl font-semibold text-ink mt-1">{yearDeals}</p>
         </div>
         <div className="rounded-lg border border-line bg-paper-raised px-5 py-4">
@@ -103,7 +105,7 @@ export default async function CommissionPage({
           <thead>
             <tr className="text-left text-[11px] uppercase tracking-wider text-ink-dim border-b border-line">
               <th className="px-5 py-3 font-medium">Month</th>
-              <th className="px-5 py-3 font-medium">Deals won</th>
+              <th className="px-5 py-3 font-medium">{noun.capital}s won</th>
               <th className="px-5 py-3 font-medium">Total sales</th>
               <th className="px-5 py-3 font-medium">Commission</th>
               <th className="px-5 py-3 font-medium"></th>

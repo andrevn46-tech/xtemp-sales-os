@@ -2,7 +2,7 @@
 
 import { Field, Input, Select, Textarea } from "@/components/ui/form";
 import { promoteContactAction } from "@/lib/actions";
-import { INDUSTRY_META, NEXT_ACTION_META, SALE_TYPE_META, productLinesFor } from "@/lib/constants";
+import { INDUSTRY_META, NEXT_ACTION_META, SALE_TYPE_META, contactSourcesFor, dealNounFor, productLinesFor } from "@/lib/constants";
 import { suggestedFollowUpForStage } from "@/lib/stages";
 import type { Industry, NextActionType, Organization, PipelineStage, SaleType } from "@/lib/types";
 import { useState } from "react";
@@ -13,6 +13,7 @@ export function PromoteForm({
   workspaceSlug,
   requiresOrganization,
   tracksSaleType,
+  tracksForecast,
   knownSaleType,
   organizations,
   knownIndustry,
@@ -23,6 +24,7 @@ export function PromoteForm({
   workspaceSlug: string;
   requiresOrganization: boolean;
   tracksSaleType: boolean;
+  tracksForecast: boolean;
   knownSaleType: SaleType | null;
   organizations: Organization[];
   knownIndustry: Industry | null;
@@ -31,6 +33,8 @@ export function PromoteForm({
   const [open, setOpen] = useState(false);
   const suggestion = suggestedFollowUpForStage("new", stages);
   const productLines = productLinesFor(workspaceSlug);
+  const sources = contactSourcesFor(workspaceSlug);
+  const noun = dealNounFor(tracksForecast);
 
   if (!open) {
     return (
@@ -38,7 +42,7 @@ export function PromoteForm({
         onClick={() => setOpen(true)}
         className="text-xs px-3 py-1.5 rounded bg-signal text-panel font-medium hover:opacity-90"
       >
-        Promote to deal
+        {tracksForecast ? "Promote to deal" : "Mark as sale"}
       </button>
     );
   }
@@ -50,7 +54,9 @@ export function PromoteForm({
     >
       <input type="hidden" name="contact_id" value={contactId} />
       <input type="hidden" name="workspace_slug" value={workspaceSlug} />
-      <p className="text-sm font-medium text-ink">Promote {contactName} to a real deal</p>
+      <p className="text-sm font-medium text-ink">
+        {tracksForecast ? `Promote ${contactName} to a real deal` : `Turn ${contactName} into a sale`}
+      </p>
 
       {requiresOrganization && (
         <>
@@ -87,7 +93,7 @@ export function PromoteForm({
         </>
       )}
 
-      <Field label="Deal title" htmlFor="title" required hint="What are they buying — keep it short.">
+      <Field label={`${noun.capital} title`} htmlFor="title" required hint="What are they buying — keep it short.">
         <Input id="title" name="title" placeholder="e.g. SIRIUS XHS for NVH test rig" required />
       </Field>
 
@@ -122,21 +128,25 @@ export function PromoteForm({
         </Field>
       )}
 
-      <div className="grid sm:grid-cols-3 gap-3">
-        <Field label="Estimated value" htmlFor="estimated_value_zar" hint="ZAR">
-          <Input id="estimated_value_zar" name="estimated_value_zar" type="number" min="0" step="1000" />
-        </Field>
-        <Field label="Win probability" htmlFor="probability" hint="%">
-          <Input id="probability" name="probability" type="number" min="0" max="100" defaultValue={20} />
-        </Field>
+      <div className={tracksForecast ? "grid sm:grid-cols-3 gap-3" : "grid sm:grid-cols-2 gap-3"}>
+        {tracksForecast && (
+          <>
+            <Field label="Estimated value" htmlFor="estimated_value_zar" hint="ZAR">
+              <Input id="estimated_value_zar" name="estimated_value_zar" type="number" min="0" step="1000" />
+            </Field>
+            <Field label="Win probability" htmlFor="probability" hint="%">
+              <Input id="probability" name="probability" type="number" min="0" max="100" defaultValue={20} />
+            </Field>
+          </>
+        )}
         <Field label="Source" htmlFor="source">
           <Select id="source" name="source" defaultValue="">
             <option value="">Select…</option>
-            <option value="cold_outreach">Cold outreach</option>
-            <option value="referral">Referral</option>
-            <option value="trade_event">Trade event</option>
-            <option value="inbound">Inbound</option>
-            <option value="existing_client">Existing client</option>
+            {sources.map((s) => (
+              <option key={s.value} value={s.value}>
+                {s.label}
+              </option>
+            ))}
           </Select>
         </Field>
       </div>
@@ -161,7 +171,7 @@ export function PromoteForm({
 
       <div className="flex gap-2">
         <button type="submit" className="text-sm px-4 py-2 rounded-md bg-signal text-panel font-medium hover:opacity-90">
-          Create deal
+          Create {noun.lower}
         </button>
         <button
           type="button"

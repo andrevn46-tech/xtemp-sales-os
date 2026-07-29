@@ -1,19 +1,11 @@
 "use client";
 
 import { addActivityAction } from "@/lib/actions";
-import { NEXT_ACTION_META, tagSuggestionsFor } from "@/lib/constants";
+import { NEXT_ACTION_META, activityTypesFor, tagSuggestionsFor } from "@/lib/constants";
 import { sortStages } from "@/lib/stages";
-import type { ActivityType, NextActionType, PipelineStage } from "@/lib/types";
+import type { NextActionType, PipelineStage } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
-
-const ACTIVITY_TYPES: { value: ActivityType; label: string }[] = [
-  { value: "call", label: "Call" },
-  { value: "email", label: "Email" },
-  { value: "meeting", label: "Meeting" },
-  { value: "demo", label: "Demo" },
-  { value: "note", label: "Note" },
-];
 
 export function ActivityForm({
   dealId,
@@ -34,6 +26,7 @@ export function ActivityForm({
   const [customTag, setCustomTag] = useState("");
   const [setsNextAction, setSetsNextAction] = useState(true);
   const tagSuggestions = tagSuggestionsFor(workspaceSlug);
+  const activityTypes = activityTypesFor(workspaceSlug);
   const orderedStages = sortStages(stages);
 
   function toggleTag(tag: string) {
@@ -56,12 +49,12 @@ export function ActivityForm({
       <input type="hidden" name="technical_tags" value={tags.join(",")} />
 
       <div className="flex flex-wrap gap-2">
-        {ACTIVITY_TYPES.map((t) => (
+        {activityTypes.map((t, i) => (
           <label
             key={t.value}
             className="flex items-center gap-1.5 text-xs border border-line rounded-full px-3 py-1.5 cursor-pointer has-checked:border-ink has-checked:bg-line/40"
           >
-            <input type="radio" name="type" value={t.value} defaultChecked={t.value === "call"} className="accent-signal" />
+            <input type="radio" name="type" value={t.value} defaultChecked={i === 0} className="accent-signal" />
             {t.label}
           </label>
         ))}

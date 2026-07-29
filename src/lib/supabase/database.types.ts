@@ -14,6 +14,7 @@ export interface Database {
           name: string;
           requires_organization: boolean;
           tracks_sale_type: boolean;
+          tracks_forecast: boolean;
           sort_order: number;
           created_at: string;
         };
@@ -23,6 +24,7 @@ export interface Database {
           name: string;
           requires_organization?: boolean;
           tracks_sale_type?: boolean;
+          tracks_forecast?: boolean;
           sort_order?: number;
           created_at?: string;
         };

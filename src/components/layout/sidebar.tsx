@@ -1,5 +1,6 @@
 "use client";
 
+import { dealNounFor } from "@/lib/constants";
 import type { Workspace } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { LayoutGrid, KanbanSquare, Users, Plus, PhoneCall, Wallet, UserPlus } from "lucide-react";
@@ -19,6 +20,8 @@ export function Sidebar({
 }) {
   const pathname = usePathname();
   const base = `/${currentSlug}`;
+  const current = workspaces.find((w) => w.slug === currentSlug);
+  const noun = dealNounFor(current?.tracks_forecast ?? true);
 
   const sections: { label: string | null; items: { href: string; label: string; icon: typeof LayoutGrid }[] }[] = [
     {
@@ -29,7 +32,7 @@ export function Sidebar({
       label: "Pipeline",
       items: [
         { href: `${base}/pipeline`, label: "Pipeline board", icon: KanbanSquare },
-        { href: `${base}/deals`, label: "Deals", icon: Users },
+        { href: `${base}/deals`, label: `${noun.capital}s`, icon: Users },
         { href: `${base}/commission`, label: "Commission", icon: Wallet },
       ],
     },
@@ -54,7 +57,7 @@ export function Sidebar({
           className="flex items-center justify-center gap-1.5 rounded-md bg-signal text-panel font-medium text-sm px-3 py-2 hover:opacity-90 transition-opacity"
         >
           <Plus size={16} />
-          New deal
+          New {noun.lower}
         </Link>
         <Link
           href={`${base}/contacts/new`}

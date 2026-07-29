@@ -1,4 +1,5 @@
 import { PrintButton } from "@/components/commission/print-button";
+import { dealNounFor } from "@/lib/constants";
 import { getWonDealsForMonth, getWorkspace } from "@/lib/data";
 import { createClient } from "@/lib/supabase/server";
 import { formatDate, formatZAR } from "@/lib/utils";
@@ -23,6 +24,7 @@ export default async function CommissionMonthPage({
   const supabase = await createClient();
   const workspace = await getWorkspace(supabase, slug);
   if (!workspace) notFound();
+  const noun = dealNounFor(workspace.tracks_forecast);
 
   const deals = await getWonDealsForMonth(supabase, workspace.id, year, month);
 
@@ -59,7 +61,7 @@ export default async function CommissionMonthPage({
             <thead>
               <tr className="text-left text-[11px] uppercase tracking-wider text-ink-dim border-b border-line">
                 <th className="py-2 font-medium">Who</th>
-                <th className="py-2 font-medium">Deal</th>
+                <th className="py-2 font-medium">{noun.capital}</th>
                 <th className="py-2 font-medium text-right">Value</th>
                 <th className="py-2 font-medium text-right">Rate</th>
                 <th className="py-2 font-medium text-right">Commission</th>

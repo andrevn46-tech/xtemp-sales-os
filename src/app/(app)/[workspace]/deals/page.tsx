@@ -1,6 +1,6 @@
 import { EmptyState } from "@/components/ui/empty-state";
 import { ButtonLink } from "@/components/ui/button";
-import { INDUSTRY_META, SALE_TYPE_META } from "@/lib/constants";
+import { INDUSTRY_META, SALE_TYPE_META, dealNounFor } from "@/lib/constants";
 import { getAllDeals, getPipelineStages, getWorkspace } from "@/lib/data";
 import { getStageMeta, sortStages } from "@/lib/stages";
 import { createClient } from "@/lib/supabase/server";
@@ -34,15 +34,16 @@ export default async function DealsPage({
     getPipelineStages(supabase, workspace.id),
   ]);
   const orderedStages = sortStages(stages);
+  const noun = dealNounFor(workspace.tracks_forecast);
 
   return (
     <div className="flex flex-col gap-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="font-display text-2xl font-semibold text-ink">Deals</h1>
+          <h1 className="font-display text-2xl font-semibold text-ink">{noun.capital}s</h1>
           <p className="text-sm text-ink-dim mt-0.5">{deals.length} total</p>
         </div>
-        <ButtonLink href={`/${slug}/deals/new`}>New deal</ButtonLink>
+        <ButtonLink href={`/${slug}/deals/new`}>New {noun.lower}</ButtonLink>
       </div>
 
       <form method="get" className="flex flex-wrap gap-3">
@@ -50,7 +51,7 @@ export default async function DealsPage({
           type="text"
           name="q"
           defaultValue={sp.q}
-          placeholder="Search by deal title…"
+          placeholder={`Search by ${noun.lower} title…`}
           className="text-sm border border-line rounded-md px-3 py-2 bg-paper-raised flex-1 min-w-[200px]"
         />
         <select
@@ -94,19 +95,19 @@ export default async function DealsPage({
       <div className="rounded-lg border border-line bg-paper-raised overflow-hidden">
         {deals.length === 0 ? (
           <EmptyState
-            title="No deals match"
-            body="Try clearing your filters, or add the first deal for this search."
-            action={<ButtonLink href={`/${slug}/deals/new`}>New deal</ButtonLink>}
+            title={`No ${noun.lower}s match`}
+            body={`Try clearing your filters, or add the first ${noun.lower} for this search.`}
+            action={<ButtonLink href={`/${slug}/deals/new`}>New {noun.lower}</ButtonLink>}
           />
         ) : (
           <table className="w-full text-sm">
             <thead>
               <tr className="text-left text-[11px] uppercase tracking-wider text-ink-dim border-b border-line">
-                <th className="px-5 py-3 font-medium">Deal</th>
+                <th className="px-5 py-3 font-medium">{noun.capital}</th>
                 {workspace.requires_organization && <th className="px-5 py-3 font-medium">Industry</th>}
                 {workspace.tracks_sale_type && <th className="px-5 py-3 font-medium">Type</th>}
                 <th className="px-5 py-3 font-medium">Stage</th>
-                <th className="px-5 py-3 font-medium">Value</th>
+                <th className="px-5 py-3 font-medium">{workspace.tracks_forecast ? "Value" : "Sale price"}</th>
                 <th className="px-5 py-3 font-medium">Next action</th>
               </tr>
             </thead>
@@ -144,7 +145,11 @@ export default async function DealsPage({
                       </span>
                     </td>
                     <td className="px-5 py-3 font-mono text-xs text-ink-dim">
-                      {formatZAR(deal.estimated_value_zar)}
+                      {workspace.tracks_forecast
+                        ? formatZAR(deal.estimated_value_zar)
+                        : deal.actual_value_zar
+                        ? formatZAR(deal.actual_value_zar)
+                        : "—"}
                     </td>
                     <td
                       className={cn(

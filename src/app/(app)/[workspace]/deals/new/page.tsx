@@ -1,6 +1,6 @@
 import { Field, Input, Select, Textarea } from "@/components/ui/form";
 import { Button } from "@/components/ui/button";
-import { INDUSTRY_META, NEXT_ACTION_META, SALE_TYPE_META, productLinesFor } from "@/lib/constants";
+import { INDUSTRY_META, NEXT_ACTION_META, SALE_TYPE_META, contactSourcesFor, dealNounFor, productLinesFor } from "@/lib/constants";
 import { createDealAction } from "@/lib/actions";
 import { getOrganizations, getPipelineStages, getWorkspace } from "@/lib/data";
 import { suggestedFollowUpForStage } from "@/lib/stages";
@@ -20,12 +20,14 @@ export default async function NewDealPage({ params }: { params: Promise<{ worksp
   ]);
   const suggestion = suggestedFollowUpForStage("new", stages);
   const productLines = productLinesFor(slug);
+  const sources = contactSourcesFor(slug);
+  const noun = dealNounFor(workspace.tracks_forecast);
 
   return (
     <div className="max-w-2xl">
-      <h1 className="font-display text-2xl font-semibold text-ink mb-1">New deal</h1>
+      <h1 className="font-display text-2xl font-semibold text-ink mb-1">New {noun.lower}</h1>
       <p className="text-sm text-ink-dim mb-6">
-        Every deal needs a next action before it&rsquo;s saved — that&rsquo;s the whole point.
+        Every {noun.lower} needs a next action before it&rsquo;s saved — that&rsquo;s the whole point.
       </p>
 
       <form action={createDealAction} className="flex flex-col gap-8">
@@ -80,32 +82,36 @@ export default async function NewDealPage({ params }: { params: Promise<{ worksp
 
         <section className="flex flex-col gap-4">
           <h2 className="font-display font-semibold text-sm text-ink border-b border-line pb-2">
-            {workspace.requires_organization ? "Primary contact" : "Who's the deal with"}
+            {workspace.requires_organization ? "Primary contact" : `Who's the ${noun.lower} with`}
           </h2>
           <div className="grid sm:grid-cols-2 gap-4">
             <Field label="Full name" htmlFor="contact_name" required={!workspace.requires_organization}>
               <Input id="contact_name" name="contact_name" placeholder="e.g. Julien Botha" required={!workspace.requires_organization} />
             </Field>
-            <Field label="Title" htmlFor="contact_title">
-              <Input id="contact_title" name="contact_title" placeholder={workspace.requires_organization ? "e.g. Test Engineer" : "Optional"} />
-            </Field>
+            {workspace.requires_organization && (
+              <Field label="Title" htmlFor="contact_title">
+                <Input id="contact_title" name="contact_title" placeholder="e.g. Test Engineer" />
+              </Field>
+            )}
             <Field label="Email" htmlFor="contact_email">
               <Input id="contact_email" name="contact_email" type="text" placeholder="name@example.com" />
             </Field>
             <Field label="Phone" htmlFor="contact_phone">
               <Input id="contact_phone" name="contact_phone" type="tel" />
             </Field>
-            <Field label="LinkedIn" htmlFor="contact_linkedin" hint="Full profile URL">
-              <Input id="contact_linkedin" name="contact_linkedin" placeholder="https://linkedin.com/in/…" />
-            </Field>
+            {workspace.requires_organization && (
+              <Field label="LinkedIn" htmlFor="contact_linkedin" hint="Full profile URL">
+                <Input id="contact_linkedin" name="contact_linkedin" placeholder="https://linkedin.com/in/…" />
+              </Field>
+            )}
           </div>
         </section>
 
         <section className="flex flex-col gap-4">
           <h2 className="font-display font-semibold text-sm text-ink border-b border-line pb-2">
-            Deal
+            {noun.capital}
           </h2>
-          <Field label="Deal title" htmlFor="title" required hint="What are they buying — keep it short.">
+          <Field label={`${noun.capital} title`} htmlFor="title" required hint="What are they buying — keep it short.">
             <Input id="title" name="title" placeholder="e.g. SIRIUS XHS for NVH test rig" required />
           </Field>
           {workspace.tracks_sale_type && (
@@ -137,28 +143,32 @@ export default async function NewDealPage({ params }: { params: Promise<{ worksp
               </div>
             </Field>
           )}
-          <div className="grid sm:grid-cols-3 gap-4">
-            <Field label="Estimated value" htmlFor="estimated_value_zar" hint="ZAR">
-              <Input id="estimated_value_zar" name="estimated_value_zar" type="number" min="0" step="1000" />
-            </Field>
-            <Field label="Win probability" htmlFor="probability" hint="%">
-              <Input
-                id="probability"
-                name="probability"
-                type="number"
-                min="0"
-                max="100"
-                defaultValue={20}
-              />
-            </Field>
+          <div className={workspace.tracks_forecast ? "grid sm:grid-cols-3 gap-4" : "grid sm:grid-cols-2 gap-4"}>
+            {workspace.tracks_forecast && (
+              <>
+                <Field label="Estimated value" htmlFor="estimated_value_zar" hint="ZAR">
+                  <Input id="estimated_value_zar" name="estimated_value_zar" type="number" min="0" step="1000" />
+                </Field>
+                <Field label="Win probability" htmlFor="probability" hint="%">
+                  <Input
+                    id="probability"
+                    name="probability"
+                    type="number"
+                    min="0"
+                    max="100"
+                    defaultValue={20}
+                  />
+                </Field>
+              </>
+            )}
             <Field label="Source" htmlFor="source">
               <Select id="source" name="source" defaultValue="">
                 <option value="">Select…</option>
-                <option value="cold_outreach">Cold outreach</option>
-                <option value="referral">Referral</option>
-                <option value="trade_event">Trade event</option>
-                <option value="inbound">Inbound</option>
-                <option value="existing_client">Existing client</option>
+                {sources.map((s) => (
+                  <option key={s.value} value={s.value}>
+                    {s.label}
+                  </option>
+                ))}
               </Select>
             </Field>
           </div>
@@ -194,7 +204,7 @@ export default async function NewDealPage({ params }: { params: Promise<{ worksp
         </section>
 
         <div className="flex gap-3">
-          <Button type="submit">Save deal</Button>
+          <Button type="submit">Save {noun.lower}</Button>
         </div>
       </form>
     </div>

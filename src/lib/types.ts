@@ -24,7 +24,7 @@ export const LOST = "lost";
 
 export type NextActionType = "call" | "email" | "meeting" | "demo" | "quote_followup" | "other";
 
-export type ActivityType = "call" | "email" | "meeting" | "demo" | "note" | "stage_change";
+export type ActivityType = "call" | "email" | "meeting" | "demo" | "note" | "message" | "stage_change";
 
 export type ProductLine = string;
 
@@ -36,6 +36,7 @@ export interface Workspace {
   name: string;
   requires_organization: boolean;
   tracks_sale_type: boolean;
+  tracks_forecast: boolean;
   sort_order: number;
   created_at: string;
 }

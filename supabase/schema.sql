@@ -17,18 +17,24 @@ create table if not exists workspaces (
   name                    text not null,
   requires_organization   boolean not null default true, -- false = deals are just with a person, no company step
   tracks_sale_type        boolean not null default false, -- true = every deal/contact specifies Set vs Loose Clubs
+  tracks_forecast         boolean not null default true, -- true = ask for estimated value + win probability upfront; false = just record the actual price once it sells
   sort_order              int not null default 0,
   created_at              timestamptz not null default now()
 );
 
-insert into workspaces (slug, name, requires_organization, tracks_sale_type, sort_order) values
-  ('xtemp', 'XTEMP', true, false, 1),
-  ('we-buy-clubz', 'We Buy Clubz', false, true, 2)
+-- Migrating a workspaces table that predates sale-type/forecast tracking —
+-- must run BEFORE the insert below, since that insert names these columns.
+-- Safe to re-run.
+alter table workspaces add column if not exists tracks_sale_type boolean not null default false;
+alter table workspaces add column if not exists tracks_forecast boolean not null default true;
+
+insert into workspaces (slug, name, requires_organization, tracks_sale_type, tracks_forecast, sort_order) values
+  ('xtemp', 'XTEMP', true, false, true, 1),
+  ('we-buy-clubz', 'We Buy Clubz', false, true, false, 2)
 on conflict (slug) do nothing;
 
--- Migrating a workspaces table that predates sale-type tracking. Safe to re-run.
-alter table workspaces add column if not exists tracks_sale_type boolean not null default false;
 update workspaces set tracks_sale_type = true where slug = 'we-buy-clubz';
+update workspaces set tracks_forecast = false where slug = 'we-buy-clubz';
 
 -- ─────────────────────────────────────────────────────────────
 -- Core tables
@@ -193,7 +199,7 @@ create table if not exists activities (
   deal_id          uuid references deals(id) on delete cascade,
   contact_id       uuid references contacts(id) on delete cascade,
   type             text not null check (type in
-                     ('call','email','meeting','demo','note','stage_change')),
+                     ('call','email','meeting','demo','note','message','stage_change')),
   notes            text not null default '',
   technical_tags   text[] not null default '{}',
   occurred_at      timestamptz not null default now(),
@@ -203,6 +209,12 @@ create table if not exists activities (
     (deal_id is null and contact_id is not null)
   )
 );
+
+-- activities: "message" type added after this table already existed on some
+-- installs. Safe to re-run regardless of whether the table is fresh.
+alter table activities drop constraint if exists activities_type_check;
+alter table activities add constraint activities_type_check
+  check (type in ('call','email','meeting','demo','note','message','stage_change'));
 
 -- ─────────────────────────────────────────────────────────────
 -- Migrating an existing database (predates workspaces, or predates any of
@@ -234,11 +246,19 @@ alter table contacts add constraint contacts_next_action_type_check
     ('call','email','meeting','demo','quote_followup','other'));
 alter table contacts add column if not exists next_action_date date;
 alter table contacts add column if not exists next_action_note text;
+alter table contacts add column if not exists sale_type text;
+alter table contacts drop constraint if exists contacts_sale_type_check;
+alter table contacts add constraint contacts_sale_type_check
+  check (sale_type is null or sale_type in ('set','loose_clubs'));
 
 -- deals: commission tracking (predates workspaces entirely)
 alter table deals add column if not exists actual_value_zar numeric(12,2);
 alter table deals add column if not exists commission_rate_percent numeric(5,2);
 alter table deals add column if not exists commission_amount_zar numeric(12,2);
+alter table deals add column if not exists sale_type text;
+alter table deals drop constraint if exists deals_sale_type_check;
+alter table deals add constraint deals_sale_type_check
+  check (sale_type is null or sale_type in ('set','loose_clubs'));
 
 -- activities: standalone-contact activity log (predates workspaces entirely)
 alter table activities alter column deal_id drop not null;

@@ -1,18 +1,10 @@
 "use client";
 
 import { addContactActivityAction } from "@/lib/actions";
-import { NEXT_ACTION_META, tagSuggestionsFor } from "@/lib/constants";
-import type { ActivityType, ContactStatus, NextActionType } from "@/lib/types";
+import { NEXT_ACTION_META, activityTypesFor, tagSuggestionsFor } from "@/lib/constants";
+import type { ContactStatus, NextActionType } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
-
-const ACTIVITY_TYPES: { value: ActivityType; label: string }[] = [
-  { value: "call", label: "Call" },
-  { value: "email", label: "Email" },
-  { value: "meeting", label: "Meeting" },
-  { value: "demo", label: "Demo" },
-  { value: "note", label: "Note" },
-];
 
 export function ContactActivityForm({
   contactId,
@@ -29,6 +21,7 @@ export function ContactActivityForm({
   const [customTag, setCustomTag] = useState("");
   const [setsNextAction, setSetsNextAction] = useState(true);
   const tagSuggestions = tagSuggestionsFor(workspaceSlug);
+  const activityTypes = activityTypesFor(workspaceSlug);
 
   function toggleTag(tag: string) {
     setTags((prev) => (prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]));
@@ -50,12 +43,12 @@ export function ContactActivityForm({
       <input type="hidden" name="technical_tags" value={tags.join(",")} />
 
       <div className="flex flex-wrap gap-2">
-        {ACTIVITY_TYPES.map((t) => (
+        {activityTypes.map((t, i) => (
           <label
             key={t.value}
             className="flex items-center gap-1.5 text-xs border border-line rounded-full px-3 py-1.5 cursor-pointer has-checked:border-ink has-checked:bg-line/40"
           >
-            <input type="radio" name="type" value={t.value} defaultChecked={t.value === "call"} className="accent-signal" />
+            <input type="radio" name="type" value={t.value} defaultChecked={i === 0} className="accent-signal" />
             {t.label}
           </label>
         ))}

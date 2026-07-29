@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { MetricCard } from "@/components/ui/metric-card";
 import { ButtonLink } from "@/components/ui/button";
+import { dealNounFor } from "@/lib/constants";
 import { getOpenDeals, getOpenContacts, getWonDealsForMonth, getWorkspace, getPipelineStages } from "@/lib/data";
 import { contactToReminder, dealToReminder, mergeReminders } from "@/lib/reminders";
 import { createClient } from "@/lib/supabase/server";
@@ -23,6 +24,7 @@ export default async function DashboardPage({ params }: { params: Promise<{ work
   const supabase = await createClient();
   const workspace = await getWorkspace(supabase, slug);
   if (!workspace) notFound();
+  const noun = dealNounFor(workspace.tracks_forecast);
 
   const now = new Date();
   const [deals, contacts, wonThisMonth, stages] = await Promise.all([
@@ -132,14 +134,14 @@ export default async function DashboardPage({ params }: { params: Promise<{ work
       <div className="grid lg:grid-cols-2 gap-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle>Deals — today &amp; overdue</CardTitle>
+            <CardTitle>{noun.capital}s — today &amp; overdue</CardTitle>
             <ButtonLink href={`/${slug}/deals`} variant="ghost" size="sm">
               View all
             </ButtonLink>
           </CardHeader>
           <CardContent>
             {dealsDueTodayOrOverdue.length === 0 ? (
-              <EmptyState title="Nothing due today" body="Deal follow-ups will surface here as they come due." />
+              <EmptyState title="Nothing due today" body={`${noun.capital} follow-ups will surface here as they come due.`} />
             ) : (
               dealsDueTodayOrOverdue.map((item) => <ReminderRow key={item.id} item={item} workspaceSlug={slug} />)
             )}
@@ -164,11 +166,11 @@ export default async function DashboardPage({ params }: { params: Promise<{ work
 
         <Card>
           <CardHeader>
-            <CardTitle>Deals — meetings, next 7 days</CardTitle>
+            <CardTitle>{noun.capital}s — meetings, next 7 days</CardTitle>
           </CardHeader>
           <CardContent>
             {dealMeetingsThisWeek.length === 0 ? (
-              <EmptyState title="No meetings booked" body="Deal meetings you schedule will show up here." />
+              <EmptyState title="No meetings booked" body={`${noun.capital} meetings you schedule will show up here.`} />
             ) : (
               dealMeetingsThisWeek.map((item) => (
                 <ReminderRow key={item.id} item={item} workspaceSlug={slug} showReschedule={false} />

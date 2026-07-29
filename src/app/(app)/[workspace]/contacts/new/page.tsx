@@ -2,7 +2,7 @@ import { Field, Input, Select, Textarea } from "@/components/ui/form";
 import { Button } from "@/components/ui/button";
 import { INDUSTRY_META, NEXT_ACTION_META, SALE_TYPE_META, contactSourcesFor, suggestedContactFollowUp } from "@/lib/constants";
 import { createContactAction } from "@/lib/actions";
-import { getWorkspace } from "@/lib/data";
+import { getOrganizations, getWorkspace } from "@/lib/data";
 import { createClient } from "@/lib/supabase/server";
 import type { Industry, NextActionType, SaleType } from "@/lib/types";
 import { notFound } from "next/navigation";
@@ -15,6 +15,7 @@ export default async function NewContactPage({ params }: { params: Promise<{ wor
 
   const suggestion = suggestedContactFollowUp();
   const sources = contactSourcesFor(slug);
+  const organizations = workspace.requires_organization ? await getOrganizations(supabase, workspace.id) : [];
 
   return (
     <div className="max-w-xl">
@@ -52,19 +53,52 @@ export default async function NewContactPage({ params }: { params: Promise<{ wor
               <Input id="linkedin_url" name="linkedin_url" placeholder="https://linkedin.com/in/…" />
             </Field>
           )}
-          {workspace.requires_organization && (
-            <Field label="Industry" htmlFor="industry" hint="If you know it — company isn't required">
-              <Select id="industry" name="industry" defaultValue="">
-                <option value="">Not sure yet</option>
-                {(Object.keys(INDUSTRY_META) as Industry[]).map((i) => (
-                  <option key={i} value={i}>
-                    {INDUSTRY_META[i]}
-                  </option>
-                ))}
-              </Select>
-            </Field>
-          )}
         </div>
+
+        {workspace.requires_organization && (
+          <section className="flex flex-col gap-4">
+            <h2 className="font-display font-semibold text-sm text-ink border-b border-line pb-2">
+              Company <span className="font-normal text-ink-dim">(optional — can add later)</span>
+            </h2>
+            {organizations.length > 0 && (
+              <Field
+                label="Link to an existing company"
+                htmlFor="existing_organization_id"
+                hint="Pick this if you already have this company in the system — new-company fields below will be ignored."
+              >
+                <Select id="existing_organization_id" name="existing_organization_id" defaultValue="">
+                  <option value="">— New company, or none yet —</option>
+                  {organizations.map((o) => (
+                    <option key={o.id} value={o.id}>
+                      {o.name}
+                    </option>
+                  ))}
+                </Select>
+              </Field>
+            )}
+            <div className="grid sm:grid-cols-2 gap-4">
+              <Field label="Company name" htmlFor="organization_name" hint="Leave blank if you don't know it yet">
+                <Input id="organization_name" name="organization_name" placeholder="e.g. Vibramech" />
+              </Field>
+              <Field label="Industry" htmlFor="industry">
+                <Select id="industry" name="industry" defaultValue="">
+                  <option value="">Not sure yet</option>
+                  {(Object.keys(INDUSTRY_META) as Industry[]).map((i) => (
+                    <option key={i} value={i}>
+                      {INDUSTRY_META[i]}
+                    </option>
+                  ))}
+                </Select>
+              </Field>
+              <Field label="Website" htmlFor="website">
+                <Input id="website" name="website" placeholder="https://…" />
+              </Field>
+              <Field label="City" htmlFor="city">
+                <Input id="city" name="city" placeholder="e.g. Johannesburg" />
+              </Field>
+            </div>
+          </section>
+        )}
 
         <Field label="How did you meet them?" htmlFor="source">
           <Select id="source" name="source" defaultValue="">

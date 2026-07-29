@@ -132,6 +132,38 @@ export const NEXT_ACTION_META: Record<NextActionType, string> = {
   other: "Task",
 };
 
+// Which activity types show up in the "log activity" form — different per
+// workspace since a quick Facebook Marketplace resale doesn't have formal
+// "Meetings" or "Demos" the way an enterprise sales cycle does.
+export const ACTIVITY_TYPES_BY_WORKSPACE: Record<string, { value: string; label: string }[]> = {
+  xtemp: [
+    { value: "call", label: "Call" },
+    { value: "email", label: "Email" },
+    { value: "meeting", label: "Meeting" },
+    { value: "demo", label: "Demo" },
+    { value: "note", label: "Note" },
+  ],
+  "we-buy-clubz": [
+    { value: "call", label: "Call" },
+    { value: "message", label: "Message" },
+  ],
+};
+
+export function activityTypesFor(workspaceSlug: string): { value: string; label: string }[] {
+  return (
+    ACTIVITY_TYPES_BY_WORKSPACE[workspaceSlug] ?? [
+      { value: "call", label: "Call" },
+      { value: "note", label: "Note" },
+    ]
+  );
+}
+
+// "Deal" doesn't fit a quick resale the way "Sale" does — used to relabel
+// the UI per workspace without renaming the underlying data model.
+export function dealNounFor(tracksForecast: boolean): { capital: string; lower: string } {
+  return tracksForecast ? { capital: "Deal", lower: "deal" } : { capital: "Sale", lower: "sale" };
+}
+
 // Every new contact defaults to a follow-up call in 3 days, regardless of
 // workspace — deliberately a little looser than a qualified deal's cadence.
 export const CONTACT_FOLLOWUP_DEFAULT: { days: number; type: NextActionType } = {

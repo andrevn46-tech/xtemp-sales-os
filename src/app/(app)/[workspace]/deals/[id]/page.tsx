@@ -4,7 +4,7 @@ import { OutcomeControls } from "@/components/leads/outcome-controls";
 import { StageSelect } from "@/components/leads/stage-select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DeleteButton } from "@/components/ui/delete-button";
-import { INDUSTRY_META, SALE_TYPE_META } from "@/lib/constants";
+import { INDUSTRY_META, SALE_TYPE_META, dealNounFor } from "@/lib/constants";
 import { deleteDealAction } from "@/lib/actions";
 import { getDeal, getCommissionTiers, getPipelineStages, getWorkspace } from "@/lib/data";
 import { getStageMeta, isTerminalStage, suggestedFollowUpForStage } from "@/lib/stages";
@@ -40,12 +40,13 @@ export default async function DealDetailPage({
   const dueToday = isDueToday(deal.next_action_date);
   const tiers = isTerminal ? [] : await getCommissionTiers(supabase, workspace.id);
   const whoLine = deal.organization?.name ?? deal.primary_contact?.name ?? null;
+  const noun = dealNounFor(workspace.tracks_forecast);
 
   return (
     <div className="flex flex-col gap-6">
       <div>
         <Link href={`/${slug}/deals`} className="text-xs text-ink-dim hover:text-ink">
-          ← All deals
+          ← All {noun.lower}s
         </Link>
         <div className="flex flex-wrap items-start justify-between gap-4 mt-2">
           <div>
@@ -76,8 +77,8 @@ export default async function DealDetailPage({
               idFieldName="deal_id"
               idValue={deal.id}
               extraFields={{ workspace_slug: slug }}
-              label="Delete deal"
-              confirmLabel="Delete this deal and its history?"
+              label={`Delete ${noun.lower}`}
+              confirmLabel={`Delete this ${noun.lower} and its history?`}
             />
           </div>
         </div>
@@ -88,9 +89,11 @@ export default async function DealDetailPage({
 
       <div className="flex flex-wrap items-center gap-4">
         <StageSelect dealId={deal.id} stage={deal.stage} stages={stages} workspaceSlug={slug} />
-        <span className="text-sm font-mono text-ink-dim">
-          {formatZAR(deal.estimated_value_zar)} · {deal.probability}% probability
-        </span>
+        {workspace.tracks_forecast && (
+          <span className="text-sm font-mono text-ink-dim">
+            {formatZAR(deal.estimated_value_zar)} · {deal.probability}% probability
+          </span>
+        )}
         {deal.sale_type && (
           <span className="text-[10px] font-mono uppercase bg-signal-dim text-signal rounded px-1.5 py-0.5">
             {SALE_TYPE_META[deal.sale_type]}
@@ -215,7 +218,7 @@ export default async function DealDetailPage({
 
           <Card>
             <CardHeader>
-              <CardTitle>Deal info</CardTitle>
+              <CardTitle>{noun.capital} info</CardTitle>
             </CardHeader>
             <CardContent className="flex flex-col gap-2 text-xs text-ink-dim">
               {deal.stage === "won" && (

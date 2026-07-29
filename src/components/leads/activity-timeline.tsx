@@ -1,7 +1,7 @@
 import { EmptyState } from "@/components/ui/empty-state";
 import type { Activity } from "@/lib/types";
 import { formatDateTime } from "@/lib/utils";
-import { Phone, Mail, Users2, MonitorPlay, StickyNote, ArrowRightLeft } from "lucide-react";
+import { Phone, Mail, Users2, MonitorPlay, StickyNote, MessageCircle, ArrowRightLeft } from "lucide-react";
 
 const TYPE_META: Record<Activity["type"], { label: string; icon: typeof Phone }> = {
   call: { label: "Call", icon: Phone },
@@ -9,6 +9,7 @@ const TYPE_META: Record<Activity["type"], { label: string; icon: typeof Phone }>
   meeting: { label: "Meeting", icon: Users2 },
   demo: { label: "Demo", icon: MonitorPlay },
   note: { label: "Note", icon: StickyNote },
+  message: { label: "Message", icon: MessageCircle },
   stage_change: { label: "Stage change", icon: ArrowRightLeft },
 };
 

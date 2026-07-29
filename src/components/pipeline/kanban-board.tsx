@@ -17,10 +17,12 @@ export function KanbanBoard({
   deals,
   stages,
   workspaceSlug,
+  tracksForecast,
 }: {
   deals: DealWithRelations[];
   stages: PipelineStage[];
   workspaceSlug: string;
+  tracksForecast: boolean;
 }) {
   const [localDeals, setLocalDeals] = useState(deals);
   const [dragId, setDragId] = useState<string | null>(null);
@@ -96,7 +98,7 @@ export function KanbanBoard({
                 </span>
                 <span className="text-[11px] font-mono text-ink-dim">{stageDeals.length}</span>
               </div>
-              <span className="text-[11px] font-mono text-ink-dim">{formatZAR(value)}</span>
+              {tracksForecast && <span className="text-[11px] font-mono text-ink-dim">{formatZAR(value)}</span>}
             </div>
 
             <div className="flex-1 p-2 flex flex-col gap-2 min-h-[120px]">
@@ -124,9 +126,11 @@ export function KanbanBoard({
                     </p>
                     <p className="text-[11px] text-ink-dim truncate mt-0.5">{deal.title}</p>
                     <div className="flex items-center justify-between mt-2">
-                      <span className="text-[11px] font-mono text-ink-dim">
-                        {formatZAR(deal.estimated_value_zar)}
-                      </span>
+                      {tracksForecast && (
+                        <span className="text-[11px] font-mono text-ink-dim">
+                          {formatZAR(deal.estimated_value_zar)}
+                        </span>
+                      )}
                       <span
                         className={cn(
                           "text-[10px] font-mono font-medium",

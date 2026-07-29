@@ -32,21 +32,25 @@ export default async function PipelinePage({ params }: { params: Promise<{ works
           </p>
         </div>
         <div className="flex items-center gap-6">
-          <div className="text-right">
-            <p className="text-[11px] uppercase tracking-wider text-ink-dim">Open value</p>
-            <p className="font-mono text-lg font-semibold text-ink">{formatZAR(totalValue)}</p>
-          </div>
-          <div className="text-right">
-            <p className="text-[11px] uppercase tracking-wider text-ink-dim">Weighted</p>
-            <p className="font-mono text-lg font-semibold text-ink">{formatZAR(weightedValue)}</p>
-          </div>
+          {workspace.tracks_forecast && (
+            <>
+              <div className="text-right">
+                <p className="text-[11px] uppercase tracking-wider text-ink-dim">Open value</p>
+                <p className="font-mono text-lg font-semibold text-ink">{formatZAR(totalValue)}</p>
+              </div>
+              <div className="text-right">
+                <p className="text-[11px] uppercase tracking-wider text-ink-dim">Weighted</p>
+                <p className="font-mono text-lg font-semibold text-ink">{formatZAR(weightedValue)}</p>
+              </div>
+            </>
+          )}
           <ButtonLink href={`/${slug}/pipeline/stages`} variant="secondary" size="sm">
             Edit stages
           </ButtonLink>
         </div>
       </div>
 
-      <KanbanBoard deals={deals} stages={stages} workspaceSlug={slug} />
+      <KanbanBoard deals={deals} stages={stages} workspaceSlug={slug} tracksForecast={workspace.tracks_forecast} />
     </div>
   );
 }
