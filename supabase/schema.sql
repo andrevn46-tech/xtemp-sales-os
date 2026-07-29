@@ -234,11 +234,19 @@ alter table contacts add constraint contacts_next_action_type_check
     ('call','email','meeting','demo','quote_followup','other'));
 alter table contacts add column if not exists next_action_date date;
 alter table contacts add column if not exists next_action_note text;
+alter table contacts add column if not exists sale_type text;
+alter table contacts drop constraint if exists contacts_sale_type_check;
+alter table contacts add constraint contacts_sale_type_check
+  check (sale_type is null or sale_type in ('set','loose_clubs'));
 
 -- deals: commission tracking (predates workspaces entirely)
 alter table deals add column if not exists actual_value_zar numeric(12,2);
 alter table deals add column if not exists commission_rate_percent numeric(5,2);
 alter table deals add column if not exists commission_amount_zar numeric(12,2);
+alter table deals add column if not exists sale_type text;
+alter table deals drop constraint if exists deals_sale_type_check;
+alter table deals add constraint deals_sale_type_check
+  check (sale_type is null or sale_type in ('set','loose_clubs'));
 
 -- activities: standalone-contact activity log (predates workspaces entirely)
 alter table activities alter column deal_id drop not null;

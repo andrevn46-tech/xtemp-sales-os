@@ -246,16 +246,38 @@ export async function createContactAction(formData: FormData) {
   const nextActionType = (str(formData, "next_action_type") as NextActionType) ?? "call";
   const nextActionDate = str(formData, "next_action_date") ?? addDaysISO(3);
 
+  let organizationId: string | null = str(formData, "existing_organization_id");
+  const orgName = str(formData, "organization_name");
+  if (!organizationId && orgName) {
+    const { data: org, error: orgError } = await supabase
+      .from("organizations")
+      .insert({
+        workspace_id: workspace.id,
+        name: orgName,
+        industry: str(formData, "industry"),
+        website: str(formData, "website"),
+        city: str(formData, "city"),
+      })
+      .select("id")
+      .single();
+    if (orgError) throw orgError;
+    organizationId = org.id;
+  }
+
   const { data: contact, error } = await supabase
     .from("contacts")
     .insert({
       workspace_id: workspace.id,
+      organization_id: organizationId,
+      is_primary: organizationId ? true : false,
       name: str(formData, "name")!,
       title: str(formData, "title"),
       email: str(formData, "email"),
       phone: str(formData, "phone"),
       linkedin_url: str(formData, "linkedin_url"),
-      industry: str(formData, "industry"),
+      // No company was created or linked — fall back to storing the
+      // industry guess on the contact itself instead of losing it.
+      industry: organizationId ? null : str(formData, "industry"),
       source: str(formData, "source"),
       notes: str(formData, "notes"),
       status: "new",
