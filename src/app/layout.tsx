@@ -21,7 +21,7 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "XTEMP Sales OS",
+  title: "AVN Sales OS",
   description: "The operating system for a technical sales engineer.",
 };
 

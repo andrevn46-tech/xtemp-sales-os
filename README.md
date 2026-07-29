@@ -1,28 +1,52 @@
-# XTEMP Sales OS
+# AVN Sales OS
 
-A purpose-built sales operating system for a technical sales engineer — not a
-generic CRM. Built with Next.js 16, TypeScript, Tailwind v4, and Supabase.
-Deploys to Vercel.
+A purpose-built sales operating system for running more than one business
+from one place — not a generic CRM. Currently set up for two: **XTEMP**
+(technical measurement systems) and **We Buy Clubz** (golf equipment resale).
+Built with Next.js 16, TypeScript, Tailwind v4, and Supabase. Deploys to Vercel.
 
 The whole system is built around one rule: **an open deal is never allowed to
 have no next action.** That's the actual fix for "I lose track of leads and
 forget follow-ups" — not a nicer list view.
 
+## Workspaces
+
+Everything lives under a workspace — switch between them from the dropdown
+at the top of the sidebar. Each workspace has its own deals, contacts,
+pipeline stages, and commission rate table; nothing ever mixes between them.
+
+- **XTEMP** requires a company on every deal, and its pipeline is
+  New → Contacted → Meeting → Demo → Quotation → Won/Lost.
+- **We Buy Clubz** skips the company step entirely (deals are just with a
+  person), and its pipeline is New → Contacted → Pending → Won/Lost.
+
+Both the pipeline stages and the commission rate table are editable from
+inside the app (**Pipeline → Edit stages**, **Commission → Rate table**) —
+no code changes needed when either business's process changes. Adding a
+third business later means one row in the `workspaces` table in Supabase
+plus its own pipeline stages and commission tiers; ask if you want that built
+as an in-app "Add workspace" flow instead of a SQL insert.
+
 ## What's inside
 
 - **Dashboard** — calls due today, follow-ups due (with overdue called out in
-  red), meetings in the next 7 days, open pipeline value, and a standing alert
-  for any deal with no next action set.
-- **Leads** — organizations, contacts (multiple people per company), and
-  deals, filterable by stage/industry/search.
-- **Pipeline** — a kanban board (drag and drop) covering the working stages:
-  New → Contacted → Meeting → Demo → Quotation. Won/Lost are closed
-  explicitly from the deal page, not dragged into a column.
+  red), meetings in the next 7 days, open pipeline value, commission this
+  month, and a standing alert for any deal or contact with no next action set.
+  Deals and contacts are always shown in separate sections, never merged
+  into one list.
+- **Deals** — organizations (skipped entirely for workspaces that don't use
+  them), contacts, and deals, filterable by stage/industry/search.
+- **Pipeline** — a kanban board (drag and drop) covering each workspace's own
+  working stages. Won/Lost are closed explicitly from the deal page, not
+  dragged into a column, and are universal across every workspace.
 - **Deal detail** — contact info, a running activity timeline (calls, emails,
-  meetings, demos, notes), technical tags per activity, and the next-action
-  field that every activity log updates.
-- **Auth** — Supabase magic-link sign-in. Single shared workspace for your
-  team (see the RLS note in `supabase/schema.sql` if you later want
+  meetings, demos, notes), tags per activity, and the next-action field that
+  every activity log updates.
+- **Contacts** — everyone you've spoken to, before it's a real deal — see the
+  section below.
+- **Commission** — tiered, per-deal, per-workspace — see the section below.
+- **Auth** — Supabase magic-link sign-in. Single shared login for both
+  workspaces (see the RLS note in `supabase/schema.sql` if you later want
   per-rep-only visibility).
 
 ## Setup
@@ -72,19 +96,27 @@ A Contact needs no company and no deal — just a name and a follow-up date.
 Each one has its own status (New → Contacted → Qualifying) and its own
 next-action reminder, shown on the Dashboard right alongside your deal
 follow-ups. When something real comes of it, click **Promote to deal** on the
-contact — it asks for the company, product, and value, creates the deal, and
-marks the contact as promoted so it drops off your active list. Dead ends can
-be marked **Not a fit** to archive them without deleting anything.
+contact — for workspaces that use companies (like XTEMP) it asks for the
+company, product, and value; for workspaces that don't (like We Buy Clubz)
+it skips straight to the deal itself. Either way it creates the deal and
+marks the contact as promoted so it drops off your active list. Dead ends
+can be marked **Not a fit** to archive them without deleting anything.
 
 ## Commission
 
 Commission is calculated per deal, from a tiered rate table applied to that
-deal's own actual value (flat rate on the whole amount, not stacked like a
-tax bracket — whichever tier the value falls into, that tier's rate applies
-to the full amount). When you mark a deal **Won**, you enter the actual sale
-value and the app looks up the matching tier and calculates the commission
-automatically — you can override either the rate or the final amount if a
-particular deal is a manual exception.
+deal's own actual value. A tier can be either **percentage-based** (flat
+rate on the whole amount, not stacked like a tax bracket) or **flat-amount**
+(a fixed rand value regardless of exact price within the band) — We Buy
+Clubz uses both: flat amounts for sets (R350/R450/R550 by price band) and a
+flat 7% for loose clubs. Workspaces that need this distinction have a
+**Sale type** field on both Contacts and Deals (Set / Loose clubs), captured
+as early as when you log the lead — the rate table then has a separate
+section per sale type. Each workspace has its own rate table. When you mark
+a deal **Won**, you enter the actual sale value (and sale type, if this
+workspace uses it) and the app looks up the matching tier and calculates the
+commission automatically — you can override either the rate/flat amount or
+the final total if a particular deal is a manual exception.
 
 - **Commission → Rate table** lets you edit the tiers yourself whenever your
   commission plan changes — no code change or redeploy needed.

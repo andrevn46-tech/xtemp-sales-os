@@ -7,12 +7,14 @@ export function DeleteButton({
   action,
   idFieldName,
   idValue,
+  extraFields = {},
   label = "Delete",
   confirmLabel = "Permanently delete?",
 }: {
   action: (formData: FormData) => void;
   idFieldName: string;
   idValue: string;
+  extraFields?: Record<string, string>;
   label?: string;
   confirmLabel?: string;
 }) {
@@ -22,6 +24,9 @@ export function DeleteButton({
     return (
       <form action={action} className="flex items-center gap-2">
         <input type="hidden" name={idFieldName} value={idValue} />
+        {Object.entries(extraFields).map(([name, value]) => (
+          <input key={name} type="hidden" name={name} value={value} />
+        ))}
         <span className="text-xs text-alert">{confirmLabel}</span>
         <button type="submit" className="text-xs px-3 py-1.5 rounded bg-alert text-white font-medium">
           Yes, delete

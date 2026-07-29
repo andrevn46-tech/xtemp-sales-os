@@ -1,7 +1,7 @@
 "use client";
 
 import { addContactActivityAction } from "@/lib/actions";
-import { NEXT_ACTION_META, TECHNICAL_TAG_SUGGESTIONS } from "@/lib/constants";
+import { NEXT_ACTION_META, tagSuggestionsFor } from "@/lib/constants";
 import type { ActivityType, ContactStatus, NextActionType } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
@@ -16,16 +16,19 @@ const ACTIVITY_TYPES: { value: ActivityType; label: string }[] = [
 
 export function ContactActivityForm({
   contactId,
+  workspaceSlug,
   suggestedType,
   suggestedDate,
 }: {
   contactId: string;
+  workspaceSlug: string;
   suggestedType: NextActionType;
   suggestedDate: string;
 }) {
   const [tags, setTags] = useState<string[]>([]);
   const [customTag, setCustomTag] = useState("");
   const [setsNextAction, setSetsNextAction] = useState(true);
+  const tagSuggestions = tagSuggestionsFor(workspaceSlug);
 
   function toggleTag(tag: string) {
     setTags((prev) => (prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]));
@@ -43,6 +46,7 @@ export function ContactActivityForm({
       className="flex flex-col gap-4 rounded-lg border border-line bg-paper-raised p-4"
     >
       <input type="hidden" name="contact_id" value={contactId} />
+      <input type="hidden" name="workspace_slug" value={workspaceSlug} />
       <input type="hidden" name="technical_tags" value={tags.join(",")} />
 
       <div className="flex flex-wrap gap-2">
@@ -65,9 +69,9 @@ export function ContactActivityForm({
       />
 
       <div>
-        <span className="text-xs font-medium text-ink-dim block mb-1.5">Technical tags</span>
+        <span className="text-xs font-medium text-ink-dim block mb-1.5">Tags</span>
         <div className="flex flex-wrap gap-1.5">
-          {TECHNICAL_TAG_SUGGESTIONS.map((tag) => (
+          {tagSuggestions.map((tag) => (
             <button
               type="button"
               key={tag}

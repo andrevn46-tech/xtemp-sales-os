@@ -1,13 +1,15 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { getWorkspace } from "@/lib/data";
 import type { Database } from "@/lib/supabase/database.types";
-import type { ContactStatus, DealStage, NextActionType } from "@/lib/types";
+import type { ContactStatus, NextActionType } from "@/lib/types";
 import { addDaysISO } from "@/lib/utils";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 type DealUpdate = Database["public"]["Tables"]["deals"]["Update"];
+type ContactUpdate = Database["public"]["Tables"]["contacts"]["Update"];
 
 function str(fd: FormData, key: string): string | null {
   const v = fd.get(key);
@@ -21,19 +23,28 @@ function num(fd: FormData, key: string): number | null {
   return Number.isFinite(n) ? n : null;
 }
 
-/** Creates the organization, primary contact, and the deal in one step. */
-export async function createLeadAction(formData: FormData) {
+async function requireWorkspace(supabase: Awaited<ReturnType<typeof createClient>>, slug: string) {
+  const workspace = await getWorkspace(supabase, slug);
+  if (!workspace) throw new Error(`Unknown workspace: ${slug}`);
+  return workspace;
+}
+
+/** Creates the organization (if this workspace uses companies), the primary
+ *  contact, and the deal in one step. */
+export async function createDealAction(formData: FormData) {
   const supabase = await createClient();
+  const slug = str(formData, "workspace_slug")!;
+  const workspace = await requireWorkspace(supabase, slug);
 
-  const existingOrgId = str(formData, "existing_organization_id");
-  let organizationId = existingOrgId;
+  let organizationId: string | null = str(formData, "existing_organization_id");
 
-  if (!organizationId) {
+  if (!organizationId && workspace.requires_organization) {
     const { data: org, error: orgError } = await supabase
       .from("organizations")
       .insert({
+        workspace_id: workspace.id,
         name: str(formData, "organization_name")!,
-        industry: str(formData, "industry")!,
+        industry: str(formData, "industry"),
         website: str(formData, "website"),
         city: str(formData, "city"),
       })
@@ -49,6 +60,7 @@ export async function createLeadAction(formData: FormData) {
     const { data: contact, error: contactError } = await supabase
       .from("contacts")
       .insert({
+        workspace_id: workspace.id,
         organization_id: organizationId,
         name: contactName,
         title: str(formData, "contact_title"),
@@ -56,6 +68,7 @@ export async function createLeadAction(formData: FormData) {
         phone: str(formData, "contact_phone"),
         linkedin_url: str(formData, "contact_linkedin"),
         is_primary: true,
+        status: "promoted", // already tied to a real deal, not an open follow-up
       })
       .select("id")
       .single();
@@ -70,6 +83,7 @@ export async function createLeadAction(formData: FormData) {
   const { data: deal, error: dealError } = await supabase
     .from("deals")
     .insert({
+      workspace_id: workspace.id,
       organization_id: organizationId,
       primary_contact_id: contactId,
       title: str(formData, "title")!,
@@ -82,19 +96,20 @@ export async function createLeadAction(formData: FormData) {
       next_action_date: nextActionDate,
       next_action_note: str(formData, "next_action_note"),
       stage_entered_at: new Date().toISOString(),
+      sale_type: str(formData, "sale_type"),
     })
     .select("id")
     .single();
   if (dealError) throw dealError;
 
-  revalidatePath("/");
-  revalidatePath("/leads");
-  revalidatePath("/pipeline");
-  redirect(`/leads/${deal.id}`);
+  revalidatePath(`/${slug}`);
+  revalidatePath(`/${slug}/deals`);
+  revalidatePath(`/${slug}/pipeline`);
+  redirect(`/${slug}/deals/${deal.id}`);
 }
 
 /** Moves a deal to a new stage (kanban drag, or the stage selector on the detail page). */
-export async function updateDealStageAction(dealId: string, stage: DealStage) {
+export async function updateDealStageAction(dealId: string, stage: string, workspaceSlug: string) {
   const supabase = await createClient();
 
   const patch: DealUpdate = {
@@ -111,15 +126,16 @@ export async function updateDealStageAction(dealId: string, stage: DealStage) {
   const { error } = await supabase.from("deals").update(patch).eq("id", dealId);
   if (error) throw error;
 
-  revalidatePath("/");
-  revalidatePath("/leads");
-  revalidatePath("/pipeline");
-  revalidatePath(`/leads/${dealId}`);
+  revalidatePath(`/${workspaceSlug}`);
+  revalidatePath(`/${workspaceSlug}/deals`);
+  revalidatePath(`/${workspaceSlug}/pipeline`);
+  revalidatePath(`/${workspaceSlug}/deals/${dealId}`);
 }
 
 /** Closes a deal as won (capturing actual value + commission) or lost (with a reason). */
 export async function setDealOutcomeAction(formData: FormData) {
   const dealId = str(formData, "deal_id")!;
+  const slug = str(formData, "workspace_slug")!;
   const outcome = str(formData, "outcome") as "won" | "lost";
   const supabase = await createClient();
 
@@ -142,11 +158,11 @@ export async function setDealOutcomeAction(formData: FormData) {
   const { error } = await supabase.from("deals").update(patch).eq("id", dealId);
   if (error) throw error;
 
-  revalidatePath("/");
-  revalidatePath("/leads");
-  revalidatePath("/pipeline");
-  revalidatePath("/commission");
-  revalidatePath(`/leads/${dealId}`);
+  revalidatePath(`/${slug}`);
+  revalidatePath(`/${slug}/deals`);
+  revalidatePath(`/${slug}/pipeline`);
+  revalidatePath(`/${slug}/commission`);
+  revalidatePath(`/${slug}/deals/${dealId}`);
 }
 
 /**
@@ -157,6 +173,7 @@ export async function setDealOutcomeAction(formData: FormData) {
  */
 export async function addActivityAction(formData: FormData) {
   const dealId = str(formData, "deal_id")!;
+  const slug = str(formData, "workspace_slug")!;
   const supabase = await createClient();
 
   const type = str(formData, "type")!;
@@ -177,7 +194,7 @@ export async function addActivityAction(formData: FormData) {
 
   const nextActionType = str(formData, "next_action_type") as NextActionType | null;
   const nextActionDate = str(formData, "next_action_date");
-  const newStage = str(formData, "new_stage") as DealStage | null;
+  const newStage = str(formData, "new_stage");
 
   const dealPatch: DealUpdate = { updated_at: new Date().toISOString() };
   if (nextActionType && nextActionDate) {
@@ -193,15 +210,16 @@ export async function addActivityAction(formData: FormData) {
   const { error: dealError } = await supabase.from("deals").update(dealPatch).eq("id", dealId);
   if (dealError) throw dealError;
 
-  revalidatePath("/");
-  revalidatePath("/leads");
-  revalidatePath("/pipeline");
-  revalidatePath(`/leads/${dealId}`);
+  revalidatePath(`/${slug}`);
+  revalidatePath(`/${slug}/deals`);
+  revalidatePath(`/${slug}/pipeline`);
+  revalidatePath(`/${slug}/deals/${dealId}`);
 }
 
-/** Quick-edit the next action straight from the dashboard or leads list. */
+/** Quick-edit the next action straight from the dashboard or deals list. */
 export async function updateNextActionAction(formData: FormData) {
   const dealId = str(formData, "deal_id")!;
+  const slug = str(formData, "workspace_slug")!;
   const supabase = await createClient();
 
   const { error } = await supabase
@@ -214,16 +232,16 @@ export async function updateNextActionAction(formData: FormData) {
     .eq("id", dealId);
   if (error) throw error;
 
-  revalidatePath("/");
-  revalidatePath("/leads");
-  revalidatePath(`/leads/${dealId}`);
+  revalidatePath(`/${slug}`);
+  revalidatePath(`/${slug}/deals`);
+  revalidatePath(`/${slug}/deals/${dealId}`);
 }
-
-type ContactUpdate = Database["public"]["Tables"]["contacts"]["Update"];
 
 /** Adds someone to the contacts pool — no company or deal required yet. */
 export async function createContactAction(formData: FormData) {
   const supabase = await createClient();
+  const slug = str(formData, "workspace_slug")!;
+  const workspace = await requireWorkspace(supabase, slug);
 
   const nextActionType = (str(formData, "next_action_type") as NextActionType) ?? "call";
   const nextActionDate = str(formData, "next_action_date") ?? addDaysISO(3);
@@ -231,6 +249,7 @@ export async function createContactAction(formData: FormData) {
   const { data: contact, error } = await supabase
     .from("contacts")
     .insert({
+      workspace_id: workspace.id,
       name: str(formData, "name")!,
       title: str(formData, "title"),
       email: str(formData, "email"),
@@ -243,19 +262,21 @@ export async function createContactAction(formData: FormData) {
       next_action_type: nextActionType,
       next_action_date: nextActionDate,
       next_action_note: str(formData, "next_action_note"),
+      sale_type: str(formData, "sale_type"),
     })
     .select("id")
     .single();
   if (error) throw error;
 
-  revalidatePath("/");
-  revalidatePath("/contacts");
-  redirect(`/contacts/${contact.id}`);
+  revalidatePath(`/${slug}`);
+  revalidatePath(`/${slug}/contacts`);
+  redirect(`/${slug}/contacts/${contact.id}`);
 }
 
 /** Logs a call/email/note against a standalone contact and sets what happens next. */
 export async function addContactActivityAction(formData: FormData) {
   const contactId = str(formData, "contact_id")!;
+  const slug = str(formData, "workspace_slug")!;
   const supabase = await createClient();
 
   const tagsRaw = str(formData, "technical_tags") ?? "";
@@ -287,14 +308,15 @@ export async function addContactActivityAction(formData: FormData) {
     if (error) throw error;
   }
 
-  revalidatePath("/");
-  revalidatePath("/contacts");
-  revalidatePath(`/contacts/${contactId}`);
+  revalidatePath(`/${slug}`);
+  revalidatePath(`/${slug}/contacts`);
+  revalidatePath(`/${slug}/contacts/${contactId}`);
 }
 
 /** Quick-reschedule a contact's next action from the dashboard or contacts list. */
 export async function updateContactNextActionAction(formData: FormData) {
   const contactId = str(formData, "contact_id")!;
+  const slug = str(formData, "workspace_slug")!;
   const supabase = await createClient();
 
   const { error } = await supabase
@@ -307,14 +329,15 @@ export async function updateContactNextActionAction(formData: FormData) {
     .eq("id", contactId);
   if (error) throw error;
 
-  revalidatePath("/");
-  revalidatePath("/contacts");
-  revalidatePath(`/contacts/${contactId}`);
+  revalidatePath(`/${slug}`);
+  revalidatePath(`/${slug}/contacts`);
+  revalidatePath(`/${slug}/contacts/${contactId}`);
 }
 
 /** Archives a contact as a dead end — clears the next action so it stops showing as due. */
 export async function markContactNotAFitAction(formData: FormData) {
   const contactId = str(formData, "contact_id")!;
+  const slug = str(formData, "workspace_slug")!;
   const supabase = await createClient();
 
   const { error } = await supabase
@@ -328,37 +351,42 @@ export async function markContactNotAFitAction(formData: FormData) {
     .eq("id", contactId);
   if (error) throw error;
 
-  revalidatePath("/");
-  revalidatePath("/contacts");
-  revalidatePath(`/contacts/${contactId}`);
+  revalidatePath(`/${slug}`);
+  revalidatePath(`/${slug}/contacts`);
+  revalidatePath(`/${slug}/contacts/${contactId}`);
 }
 
 /**
  * Promotes a contact into a real opportunity: creates (or links) an
- * organization and a deal, carries the contact over as the deal's primary
- * contact, and marks the contact as promoted so it drops out of the
- * everyone-I've-spoken-to list.
+ * organization (only if this workspace uses companies) and a deal, carries
+ * the contact over as the deal's primary contact, and marks the contact as
+ * promoted so it drops out of the everyone-I've-spoken-to list.
  */
 export async function promoteContactAction(formData: FormData) {
   const contactId = str(formData, "contact_id")!;
+  const slug = str(formData, "workspace_slug")!;
   const supabase = await createClient();
+  const workspace = await requireWorkspace(supabase, slug);
 
-  const existingOrgId = str(formData, "existing_organization_id");
-  let organizationId = existingOrgId;
+  let organizationId: string | null = str(formData, "existing_organization_id");
 
-  if (!organizationId) {
-    const { data: org, error: orgError } = await supabase
-      .from("organizations")
-      .insert({
-        name: str(formData, "organization_name")!,
-        industry: str(formData, "industry")!,
-        website: str(formData, "website"),
-        city: str(formData, "city"),
-      })
-      .select("id")
-      .single();
-    if (orgError) throw orgError;
-    organizationId = org.id;
+  if (!organizationId && workspace.requires_organization) {
+    const orgName = str(formData, "organization_name");
+    if (orgName) {
+      const { data: org, error: orgError } = await supabase
+        .from("organizations")
+        .insert({
+          workspace_id: workspace.id,
+          name: orgName,
+          industry: str(formData, "industry"),
+          website: str(formData, "website"),
+          city: str(formData, "city"),
+        })
+        .select("id")
+        .single();
+      if (orgError) throw orgError;
+      organizationId = org.id;
+    }
   }
 
   const productLines = formData.getAll("product_lines").filter(Boolean) as string[];
@@ -368,6 +396,7 @@ export async function promoteContactAction(formData: FormData) {
   const { data: deal, error: dealError } = await supabase
     .from("deals")
     .insert({
+      workspace_id: workspace.id,
       organization_id: organizationId,
       primary_contact_id: contactId,
       title: str(formData, "title")!,
@@ -380,6 +409,7 @@ export async function promoteContactAction(formData: FormData) {
       next_action_date: nextActionDate,
       next_action_note: str(formData, "next_action_note"),
       stage_entered_at: new Date().toISOString(),
+      sale_type: str(formData, "sale_type"),
     })
     .select("id")
     .single();
@@ -398,32 +428,45 @@ export async function promoteContactAction(formData: FormData) {
     .eq("id", contactId);
   if (contactError) throw contactError;
 
-  revalidatePath("/");
-  revalidatePath("/contacts");
-  revalidatePath("/leads");
-  revalidatePath("/pipeline");
-  redirect(`/leads/${deal.id}`);
+  revalidatePath(`/${slug}`);
+  revalidatePath(`/${slug}/contacts`);
+  revalidatePath(`/${slug}/deals`);
+  revalidatePath(`/${slug}/pipeline`);
+  redirect(`/${slug}/deals/${deal.id}`);
 }
 
-
-/** Replaces the whole commission tier table with the submitted rows. */
+/** Replaces the whole commission tier table for a workspace with the submitted rows. */
 export async function saveCommissionTiersAction(formData: FormData) {
   const supabase = await createClient();
+  const slug = str(formData, "workspace_slug")!;
+  const workspace = await requireWorkspace(supabase, slug);
 
+  const saleTypes = formData.getAll("tier_sale_type") as string[];
   const mins = formData.getAll("tier_min") as string[];
   const maxes = formData.getAll("tier_max") as string[];
-  const rates = formData.getAll("tier_rate") as string[];
+  const modes = formData.getAll("tier_mode") as string[]; // "rate" or "flat"
+  const values = formData.getAll("tier_value") as string[]; // rate % or flat rand, per mode
 
   const rows = mins
-    .map((min, i) => ({
-      min_value: Number(min),
-      max_value: maxes[i] && maxes[i].trim() !== "" ? Number(maxes[i]) : null,
-      rate_percent: Number(rates[i]),
-      sort_order: i + 1,
-    }))
-    .filter((r) => Number.isFinite(r.min_value) && Number.isFinite(r.rate_percent));
+    .map((min, i) => {
+      const numericValue = Number(values[i]);
+      const isFlat = modes[i] === "flat";
+      return {
+        workspace_id: workspace.id,
+        sale_type: saleTypes[i]?.trim() ? saleTypes[i].trim() : null,
+        min_value: Number(min),
+        max_value: maxes[i] && maxes[i].trim() !== "" ? Number(maxes[i]) : null,
+        rate_percent: isFlat ? null : numericValue,
+        flat_amount: isFlat ? numericValue : null,
+        sort_order: i + 1,
+      };
+    })
+    .filter((r) => Number.isFinite(r.min_value) && (r.rate_percent !== null || r.flat_amount !== null));
 
-  const { error: deleteError } = await supabase.from("commission_tiers").delete().gte("sort_order", 0);
+  const { error: deleteError } = await supabase
+    .from("commission_tiers")
+    .delete()
+    .eq("workspace_id", workspace.id);
   if (deleteError) throw deleteError;
 
   if (rows.length > 0) {
@@ -431,34 +474,80 @@ export async function saveCommissionTiersAction(formData: FormData) {
     if (insertError) throw insertError;
   }
 
-  revalidatePath("/commission");
-  revalidatePath("/commission/tiers");
+  revalidatePath(`/${slug}/commission`);
+  revalidatePath(`/${slug}/commission/tiers`);
+}
+
+/** Replaces the whole open-stage list for a workspace's pipeline. "won" and
+ *  "lost" are universal and aren't part of this editable list. */
+export async function savePipelineStagesAction(formData: FormData) {
+  const supabase = await createClient();
+  const slug = str(formData, "workspace_slug")!;
+  const workspace = await requireWorkspace(supabase, slug);
+
+  const keys = formData.getAll("stage_key") as string[];
+  const labels = formData.getAll("stage_label") as string[];
+  const colors = formData.getAll("stage_color") as string[];
+  const days = formData.getAll("stage_days") as string[];
+  const types = formData.getAll("stage_type") as string[];
+
+  const rows = keys
+    .map((rawKey, i) => ({
+      workspace_id: workspace.id,
+      key: rawKey.trim().toLowerCase().replace(/\s+/g, "_"),
+      label: labels[i]?.trim() || rawKey.trim(),
+      color: (["wire", "amber", "signal"].includes(colors[i]) ? colors[i] : "wire") as
+        | "wire"
+        | "amber"
+        | "signal",
+      sort_order: i + 1,
+      default_followup_days: Number(days[i]) || 3,
+      default_followup_type: types[i] || "call",
+    }))
+    .filter((r) => r.key.length > 0 && r.key !== "won" && r.key !== "lost");
+
+  const { error: deleteError } = await supabase
+    .from("pipeline_stages")
+    .delete()
+    .eq("workspace_id", workspace.id);
+  if (deleteError) throw deleteError;
+
+  if (rows.length > 0) {
+    const { error: insertError } = await supabase.from("pipeline_stages").insert(rows);
+    if (insertError) throw insertError;
+  }
+
+  revalidatePath(`/${slug}`);
+  revalidatePath(`/${slug}/pipeline`);
+  revalidatePath(`/${slug}/pipeline/stages`);
 }
 
 /** Permanently deletes a deal and its activity log. Used for cleaning up test data. */
 export async function deleteDealAction(formData: FormData) {
   const dealId = str(formData, "deal_id")!;
+  const slug = str(formData, "workspace_slug")!;
   const supabase = await createClient();
 
   const { error } = await supabase.from("deals").delete().eq("id", dealId);
   if (error) throw error;
 
-  revalidatePath("/");
-  revalidatePath("/leads");
-  revalidatePath("/pipeline");
-  revalidatePath("/commission");
-  redirect("/leads");
+  revalidatePath(`/${slug}`);
+  revalidatePath(`/${slug}/deals`);
+  revalidatePath(`/${slug}/pipeline`);
+  revalidatePath(`/${slug}/commission`);
+  redirect(`/${slug}/deals`);
 }
 
 /** Permanently deletes a contact and its activity log. Used for cleaning up test data. */
 export async function deleteContactAction(formData: FormData) {
   const contactId = str(formData, "contact_id")!;
+  const slug = str(formData, "workspace_slug")!;
   const supabase = await createClient();
 
   const { error } = await supabase.from("contacts").delete().eq("id", contactId);
   if (error) throw error;
 
-  revalidatePath("/");
-  revalidatePath("/contacts");
-  redirect("/contacts");
+  revalidatePath(`/${slug}`);
+  revalidatePath(`/${slug}/contacts`);
+  redirect(`/${slug}/contacts`);
 }

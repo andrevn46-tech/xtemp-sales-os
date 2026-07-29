@@ -1,52 +1,63 @@
 "use client";
 
+import type { Workspace } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { LayoutGrid, KanbanSquare, Users, Plus, PhoneCall, Wallet, UserPlus } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { SignOutButton } from "./sign-out-button";
+import { WorkspaceSwitcher } from "./workspace-switcher";
 
-const SECTIONS: { label: string | null; items: { href: string; label: string; icon: typeof LayoutGrid }[] }[] = [
-  {
-    label: null,
-    items: [{ href: "/", label: "Dashboard", icon: LayoutGrid }],
-  },
-  {
-    label: "Pipeline",
-    items: [
-      { href: "/pipeline", label: "Pipeline board", icon: KanbanSquare },
-      { href: "/leads", label: "Leads", icon: Users },
-      { href: "/commission", label: "Commission", icon: Wallet },
-    ],
-  },
-  {
-    label: "Contacts",
-    items: [{ href: "/contacts", label: "All contacts", icon: PhoneCall }],
-  },
-];
-
-export function Sidebar({ userEmail }: { userEmail: string | null }) {
+export function Sidebar({
+  userEmail,
+  workspaces,
+  currentSlug,
+}: {
+  userEmail: string | null;
+  workspaces: Workspace[];
+  currentSlug: string;
+}) {
   const pathname = usePathname();
+  const base = `/${currentSlug}`;
+
+  const sections: { label: string | null; items: { href: string; label: string; icon: typeof LayoutGrid }[] }[] = [
+    {
+      label: null,
+      items: [{ href: base, label: "Dashboard", icon: LayoutGrid }],
+    },
+    {
+      label: "Pipeline",
+      items: [
+        { href: `${base}/pipeline`, label: "Pipeline board", icon: KanbanSquare },
+        { href: `${base}/deals`, label: "Deals", icon: Users },
+        { href: `${base}/commission`, label: "Commission", icon: Wallet },
+      ],
+    },
+    {
+      label: "Contacts",
+      items: [{ href: `${base}/contacts`, label: "All contacts", icon: PhoneCall }],
+    },
+  ];
 
   return (
     <aside className="w-60 shrink-0 bg-panel text-panel-ink flex flex-col h-screen sticky top-0 no-print">
       <div className="px-5 pt-6 pb-5 border-b border-panel-line">
-        <div className="font-display font-bold text-lg tracking-tight">XTEMP</div>
-        <div className="text-[11px] font-mono uppercase tracking-widest text-signal">
-          Sales OS
+        <WorkspaceSwitcher workspaces={workspaces} currentSlug={currentSlug} />
+        <div className="text-[11px] font-mono uppercase tracking-widest text-signal mt-0.5">
+          AVN Sales OS
         </div>
       </div>
 
       <div className="px-3 pt-4 flex flex-col gap-2">
         <Link
-          href="/leads/new"
+          href={`${base}/deals/new`}
           className="flex items-center justify-center gap-1.5 rounded-md bg-signal text-panel font-medium text-sm px-3 py-2 hover:opacity-90 transition-opacity"
         >
           <Plus size={16} />
-          New lead
+          New deal
         </Link>
         <Link
-          href="/contacts/new"
+          href={`${base}/contacts/new`}
           className="flex items-center justify-center gap-1.5 rounded-md border border-panel-line text-panel-ink font-medium text-sm px-3 py-2 hover:bg-panel-raised transition-colors"
         >
           <UserPlus size={16} />
@@ -55,7 +66,7 @@ export function Sidebar({ userEmail }: { userEmail: string | null }) {
       </div>
 
       <nav className="flex-1 px-3 py-5 flex flex-col gap-5 overflow-y-auto">
-        {SECTIONS.map((section, i) => (
+        {sections.map((section, i) => (
           <div key={i} className="flex flex-col gap-1">
             {section.label && (
               <div className="px-3 pb-1 text-[10px] font-mono uppercase tracking-widest text-panel-ink-dim">
@@ -63,7 +74,7 @@ export function Sidebar({ userEmail }: { userEmail: string | null }) {
               </div>
             )}
             {section.items.map(({ href, label, icon: Icon }) => {
-              const active = href === "/" ? pathname === "/" : pathname.startsWith(href);
+              const active = href === base ? pathname === base : pathname.startsWith(href);
               return (
                 <Link
                   key={href}

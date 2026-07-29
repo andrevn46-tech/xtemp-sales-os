@@ -7,11 +7,58 @@ export type Json = string | number | boolean | null | { [key: string]: Json } | 
 export interface Database {
   public: {
     Tables: {
+      workspaces: {
+        Row: {
+          id: string;
+          slug: string;
+          name: string;
+          requires_organization: boolean;
+          tracks_sale_type: boolean;
+          sort_order: number;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          slug: string;
+          name: string;
+          requires_organization?: boolean;
+          tracks_sale_type?: boolean;
+          sort_order?: number;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["workspaces"]["Insert"]>;
+        Relationships: [];
+      };
+      pipeline_stages: {
+        Row: {
+          id: string;
+          workspace_id: string;
+          key: string;
+          label: string;
+          color: string;
+          sort_order: number;
+          default_followup_days: number;
+          default_followup_type: string;
+        };
+        Insert: {
+          id?: string;
+          workspace_id: string;
+          key: string;
+          label: string;
+          color?: string;
+          sort_order?: number;
+          default_followup_days?: number;
+          default_followup_type?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["pipeline_stages"]["Insert"]>;
+        Relationships: [];
+      };
       organizations: {
         Row: {
           id: string;
+          workspace_id: string;
           name: string;
-          industry: string;
+          industry: string | null;
           website: string | null;
           city: string | null;
           notes: string | null;
@@ -19,8 +66,9 @@ export interface Database {
         };
         Insert: {
           id?: string;
+          workspace_id: string;
           name: string;
-          industry: string;
+          industry?: string | null;
           website?: string | null;
           city?: string | null;
           notes?: string | null;
@@ -32,6 +80,7 @@ export interface Database {
       contacts: {
         Row: {
           id: string;
+          workspace_id: string;
           organization_id: string | null;
           name: string;
           title: string | null;
@@ -46,10 +95,12 @@ export interface Database {
           next_action_type: string | null;
           next_action_date: string | null;
           next_action_note: string | null;
+          sale_type: string | null;
           created_at: string;
         };
         Insert: {
           id?: string;
+          workspace_id: string;
           organization_id?: string | null;
           name: string;
           title?: string | null;
@@ -64,6 +115,7 @@ export interface Database {
           next_action_type?: string | null;
           next_action_date?: string | null;
           next_action_note?: string | null;
+          sale_type?: string | null;
           created_at?: string;
         };
         Update: Partial<Database["public"]["Tables"]["contacts"]["Insert"]>;
@@ -72,7 +124,8 @@ export interface Database {
       deals: {
         Row: {
           id: string;
-          organization_id: string;
+          workspace_id: string;
+          organization_id: string | null;
           primary_contact_id: string | null;
           title: string;
           stage: string;
@@ -88,12 +141,14 @@ export interface Database {
           actual_value_zar: number | null;
           commission_rate_percent: number | null;
           commission_amount_zar: number | null;
+          sale_type: string | null;
           created_at: string;
           updated_at: string;
         };
         Insert: {
           id?: string;
-          organization_id: string;
+          workspace_id: string;
+          organization_id?: string | null;
           primary_contact_id?: string | null;
           title: string;
           stage?: string;
@@ -109,6 +164,7 @@ export interface Database {
           actual_value_zar?: number | null;
           commission_rate_percent?: number | null;
           commission_amount_zar?: number | null;
+          sale_type?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -118,16 +174,22 @@ export interface Database {
       commission_tiers: {
         Row: {
           id: string;
+          workspace_id: string;
+          sale_type: string | null;
           min_value: number;
           max_value: number | null;
-          rate_percent: number;
+          rate_percent: number | null;
+          flat_amount: number | null;
           sort_order: number;
         };
         Insert: {
           id?: string;
+          workspace_id: string;
+          sale_type?: string | null;
           min_value: number;
           max_value?: number | null;
-          rate_percent: number;
+          rate_percent?: number | null;
+          flat_amount?: number | null;
           sort_order?: number;
         };
         Update: Partial<Database["public"]["Tables"]["commission_tiers"]["Insert"]>;

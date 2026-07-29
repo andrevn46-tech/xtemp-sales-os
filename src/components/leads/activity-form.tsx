@@ -1,8 +1,9 @@
 "use client";
 
 import { addActivityAction } from "@/lib/actions";
-import { NEXT_ACTION_META, TECHNICAL_TAG_SUGGESTIONS } from "@/lib/constants";
-import type { ActivityType, DealStage, NextActionType } from "@/lib/types";
+import { NEXT_ACTION_META, tagSuggestionsFor } from "@/lib/constants";
+import { sortStages } from "@/lib/stages";
+import type { ActivityType, NextActionType, PipelineStage } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
 
@@ -16,18 +17,24 @@ const ACTIVITY_TYPES: { value: ActivityType; label: string }[] = [
 
 export function ActivityForm({
   dealId,
-  currentStage,
+  workspaceSlug,
+  currentStageLabel,
+  stages,
   suggestedType,
   suggestedDate,
 }: {
   dealId: string;
-  currentStage: DealStage;
+  workspaceSlug: string;
+  currentStageLabel: string;
+  stages: PipelineStage[];
   suggestedType: NextActionType;
   suggestedDate: string;
 }) {
   const [tags, setTags] = useState<string[]>([]);
   const [customTag, setCustomTag] = useState("");
   const [setsNextAction, setSetsNextAction] = useState(true);
+  const tagSuggestions = tagSuggestionsFor(workspaceSlug);
+  const orderedStages = sortStages(stages);
 
   function toggleTag(tag: string) {
     setTags((prev) => (prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]));
@@ -45,6 +52,7 @@ export function ActivityForm({
       className="flex flex-col gap-4 rounded-lg border border-line bg-paper-raised p-4"
     >
       <input type="hidden" name="deal_id" value={dealId} />
+      <input type="hidden" name="workspace_slug" value={workspaceSlug} />
       <input type="hidden" name="technical_tags" value={tags.join(",")} />
 
       <div className="flex flex-wrap gap-2">
@@ -61,49 +69,51 @@ export function ActivityForm({
 
       <textarea
         name="notes"
-        placeholder="What happened? Technical requirements, objections, who else is involved…"
+        placeholder="What happened? Requirements, objections, who else is involved…"
         required
         className="min-h-[80px] resize-y w-full rounded-md border border-line bg-paper px-3 py-2 text-sm"
       />
 
-      <div>
-        <span className="text-xs font-medium text-ink-dim block mb-1.5">Technical tags</span>
-        <div className="flex flex-wrap gap-1.5">
-          {TECHNICAL_TAG_SUGGESTIONS.map((tag) => (
-            <button
-              type="button"
-              key={tag}
-              onClick={() => toggleTag(tag)}
-              className={cn(
-                "text-[11px] rounded-full px-2.5 py-1 border transition-colors",
-                tags.includes(tag)
-                  ? "bg-wire text-white border-wire"
-                  : "border-line text-ink-dim hover:border-ink"
-              )}
-            >
-              {tag}
+      {tagSuggestions.length > 0 && (
+        <div>
+          <span className="text-xs font-medium text-ink-dim block mb-1.5">Tags</span>
+          <div className="flex flex-wrap gap-1.5">
+            {tagSuggestions.map((tag) => (
+              <button
+                type="button"
+                key={tag}
+                onClick={() => toggleTag(tag)}
+                className={cn(
+                  "text-[11px] rounded-full px-2.5 py-1 border transition-colors",
+                  tags.includes(tag)
+                    ? "bg-wire text-white border-wire"
+                    : "border-line text-ink-dim hover:border-ink"
+                )}
+              >
+                {tag}
+              </button>
+            ))}
+          </div>
+          <div className="flex gap-1.5 mt-2">
+            <input
+              type="text"
+              value={customTag}
+              onChange={(e) => setCustomTag(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  addCustomTag();
+                }
+              }}
+              placeholder="Add custom tag"
+              className="text-xs border border-line rounded px-2 py-1 bg-paper flex-1"
+            />
+            <button type="button" onClick={addCustomTag} className="text-xs px-2 py-1 border border-line rounded text-ink-dim">
+              Add
             </button>
-          ))}
+          </div>
         </div>
-        <div className="flex gap-1.5 mt-2">
-          <input
-            type="text"
-            value={customTag}
-            onChange={(e) => setCustomTag(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") {
-                e.preventDefault();
-                addCustomTag();
-              }
-            }}
-            placeholder="Add custom tag"
-            className="text-xs border border-line rounded px-2 py-1 bg-paper flex-1"
-          />
-          <button type="button" onClick={addCustomTag} className="text-xs px-2 py-1 border border-line rounded text-ink-dim">
-            Add
-          </button>
-        </div>
-      </div>
+      )}
 
       <div className="border-t border-line pt-3 flex flex-col gap-3">
         <label className="flex items-center gap-2 text-xs font-medium text-ink-dim">
@@ -147,12 +157,12 @@ export function ActivityForm({
         <div className="pl-6">
           <span className="text-xs font-medium text-ink-dim block mb-1.5">Move stage to (optional)</span>
           <select name="new_stage" defaultValue="" className="text-sm border border-line rounded-md px-3 py-2 bg-paper">
-            <option value="">Keep at {currentStage}</option>
-            <option value="new">New</option>
-            <option value="contacted">Contacted</option>
-            <option value="meeting">Meeting</option>
-            <option value="demo">Demo</option>
-            <option value="quotation">Quotation</option>
+            <option value="">Keep at {currentStageLabel}</option>
+            {orderedStages.map((s) => (
+              <option key={s.key} value={s.key}>
+                {s.label}
+              </option>
+            ))}
           </select>
         </div>
       </div>

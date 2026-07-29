@@ -27,10 +27,10 @@ export default function LoginPage() {
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
           <div className="font-display font-bold text-2xl text-panel-ink tracking-tight">
-            XTEMP
+            AVN
           </div>
           <div className="text-xs font-mono uppercase tracking-widest text-signal mt-1">
-            Sales Operating System
+            Sales OS
           </div>
         </div>
 

@@ -11,41 +11,51 @@ export type ContactStatus = "new" | "contacted" | "qualifying" | "promoted" | "n
 
 export const OPEN_CONTACT_STATUSES: ContactStatus[] = ["new", "contacted", "qualifying"];
 
-export type DealStage =
-  | "new"
-  | "contacted"
-  | "meeting"
-  | "demo"
-  | "quotation"
-  | "won"
-  | "lost";
-
-export const OPEN_STAGES: DealStage[] = [
-  "new",
-  "contacted",
-  "meeting",
-  "demo",
-  "quotation",
-];
+/**
+ * Open stages are defined per-workspace (see PipelineStage / the
+ * pipeline_stages table) since XTEMP and We Buy Clubz have different sales
+ * processes. "won" and "lost" are the two universal terminal stages, shared
+ * by every workspace, and are handled as plain string literals rather than
+ * rows in that table.
+ */
+export type DealStage = string;
+export const WON = "won";
+export const LOST = "lost";
 
 export type NextActionType = "call" | "email" | "meeting" | "demo" | "quote_followup" | "other";
 
 export type ActivityType = "call" | "email" | "meeting" | "demo" | "note" | "stage_change";
 
-export type ProductLine =
-  | "SIRIUS"
-  | "SIRIUS XHS"
-  | "KRYPTON"
-  | "IOLITE"
-  | "DewesoftX Software"
-  | "Structural Health Monitoring"
-  | "Condition Monitoring"
-  | "Other";
+export type ProductLine = string;
+
+export type SaleType = "set" | "loose_clubs";
+
+export interface Workspace {
+  id: string;
+  slug: string;
+  name: string;
+  requires_organization: boolean;
+  tracks_sale_type: boolean;
+  sort_order: number;
+  created_at: string;
+}
+
+export interface PipelineStage {
+  id: string;
+  workspace_id: string;
+  key: string;
+  label: string;
+  color: "wire" | "amber" | "signal";
+  sort_order: number;
+  default_followup_days: number;
+  default_followup_type: NextActionType;
+}
 
 export interface Organization {
   id: string;
+  workspace_id: string;
   name: string;
-  industry: Industry;
+  industry: Industry | null;
   website: string | null;
   city: string | null;
   notes: string | null;
@@ -54,6 +64,7 @@ export interface Organization {
 
 export interface Contact {
   id: string;
+  workspace_id: string;
   organization_id: string | null;
   name: string;
   title: string | null;
@@ -68,6 +79,7 @@ export interface Contact {
   next_action_type: NextActionType | null;
   next_action_date: string | null;
   next_action_note: string | null;
+  sale_type: SaleType | null;
   created_at: string;
 }
 
@@ -91,7 +103,8 @@ export interface ReminderItem {
 
 export interface Deal {
   id: string;
-  organization_id: string;
+  workspace_id: string;
+  organization_id: string | null;
   primary_contact_id: string | null;
   title: string;
   stage: DealStage;
@@ -107,15 +120,19 @@ export interface Deal {
   actual_value_zar: number | null;
   commission_rate_percent: number | null;
   commission_amount_zar: number | null;
+  sale_type: SaleType | null;
   created_at: string;
   updated_at: string;
 }
 
 export interface CommissionTier {
   id: string;
+  workspace_id: string;
+  sale_type: SaleType | null;
   min_value: number;
   max_value: number | null;
-  rate_percent: number;
+  rate_percent: number | null;
+  flat_amount: number | null;
   sort_order: number;
 }
 
@@ -132,7 +149,7 @@ export interface Activity {
 
 // Composite shapes returned by joined queries
 export interface DealWithRelations extends Deal {
-  organization: Organization;
+  organization: Organization | null;
   primary_contact: Contact | null;
 }
 

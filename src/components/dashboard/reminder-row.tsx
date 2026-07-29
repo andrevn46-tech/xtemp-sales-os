@@ -14,7 +14,15 @@ const TYPE_ICON = {
   other: HelpCircle,
 };
 
-export function ReminderRow({ item, showReschedule = true }: { item: ReminderItem; showReschedule?: boolean }) {
+export function ReminderRow({
+  item,
+  workspaceSlug,
+  showReschedule = true,
+}: {
+  item: ReminderItem;
+  workspaceSlug: string;
+  showReschedule?: boolean;
+}) {
   const overdue = isOverdue(item.next_action_date);
   const dueToday = isDueToday(item.next_action_date);
   const Icon = item.next_action_type ? TYPE_ICON[item.next_action_type] : HelpCircle;
@@ -33,7 +41,7 @@ export function ReminderRow({ item, showReschedule = true }: { item: ReminderIte
       </div>
 
       <div className="min-w-0 flex-1">
-        <Link href={item.href} className="font-medium text-sm text-ink hover:underline truncate block">
+        <Link href={`/${workspaceSlug}${item.href}`} className="font-medium text-sm text-ink hover:underline truncate block">
           {item.title}
         </Link>
         <div className="text-xs text-ink-dim truncate">
@@ -68,6 +76,7 @@ export function ReminderRow({ item, showReschedule = true }: { item: ReminderIte
       {showReschedule && (
         <form action={rescheduleAction} className="hidden lg:flex items-center gap-1.5">
           <input type="hidden" name={idFieldName} value={item.id} />
+          <input type="hidden" name="workspace_slug" value={workspaceSlug} />
           <input type="hidden" name="next_action_type" value={item.next_action_type ?? "other"} />
           <input type="hidden" name="next_action_note" value={item.next_action_note ?? ""} />
           <input

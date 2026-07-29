@@ -2,28 +2,36 @@
 
 import { setDealOutcomeAction } from "@/lib/actions";
 import { computeCommission, formatTierRange } from "@/lib/commissions";
-import type { CommissionTier } from "@/lib/types";
+import { SALE_TYPE_META } from "@/lib/constants";
+import type { CommissionTier, SaleType } from "@/lib/types";
 import { useMemo, useState } from "react";
 
 export function OutcomeControls({
   dealId,
   estimatedValue,
   tiers,
+  workspaceSlug,
+  tracksSaleType,
+  dealSaleType,
 }: {
   dealId: string;
   estimatedValue: number | null;
   tiers: CommissionTier[];
+  workspaceSlug: string;
+  tracksSaleType: boolean;
+  dealSaleType: SaleType | null;
 }) {
   const [mode, setMode] = useState<"idle" | "won" | "lost">("idle");
   const [actualValue, setActualValue] = useState(estimatedValue ? String(estimatedValue) : "");
+  const [saleType, setSaleType] = useState<string>(dealSaleType ?? "");
   const [rateOverride, setRateOverride] = useState<string | null>(null);
   const [amountOverride, setAmountOverride] = useState<string | null>(null);
 
   const computed = useMemo(() => {
     const v = Number(actualValue);
-    if (!Number.isFinite(v) || v <= 0) return { rate: null, amount: null, tier: null };
-    return computeCommission(v, tiers);
-  }, [actualValue, tiers]);
+    if (!Number.isFinite(v) || v <= 0) return { rate: null, amount: null, tier: null, isFlat: false };
+    return computeCommission(v, tiers, (saleType || null) as SaleType | null);
+  }, [actualValue, tiers, saleType]);
 
   const effectiveRate = rateOverride ?? (computed.rate !== null ? String(computed.rate) : "");
   const effectiveAmount = amountOverride ?? (computed.amount !== null ? String(computed.amount) : "");
@@ -32,6 +40,7 @@ export function OutcomeControls({
     return (
       <form action={setDealOutcomeAction} className="flex items-center gap-2">
         <input type="hidden" name="deal_id" value={dealId} />
+        <input type="hidden" name="workspace_slug" value={workspaceSlug} />
         <input type="hidden" name="outcome" value="lost" />
         <input
           type="text"
@@ -58,8 +67,35 @@ export function OutcomeControls({
         className="flex flex-col gap-3 rounded-lg border border-signal bg-signal-dim/30 p-4 w-full sm:w-96"
       >
         <input type="hidden" name="deal_id" value={dealId} />
+        <input type="hidden" name="workspace_slug" value={workspaceSlug} />
         <input type="hidden" name="outcome" value="won" />
         <p className="text-sm font-medium text-ink">Confirm the win</p>
+
+        {tracksSaleType && (
+          <label className="flex flex-col gap-1">
+            <span className="text-xs text-ink-dim">Sale type</span>
+            <select
+              name="sale_type"
+              value={saleType}
+              onChange={(e) => {
+                setSaleType(e.target.value);
+                setRateOverride(null);
+                setAmountOverride(null);
+              }}
+              className="text-sm border border-line rounded-md px-3 py-2 bg-paper-raised"
+              required
+            >
+              <option value="" disabled>
+                Select…
+              </option>
+              {(Object.keys(SALE_TYPE_META) as SaleType[]).map((st) => (
+                <option key={st} value={st}>
+                  {SALE_TYPE_META[st]}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
 
         <label className="flex flex-col gap-1">
           <span className="text-xs text-ink-dim">Actual sale value (ZAR)</span>
@@ -86,19 +122,21 @@ export function OutcomeControls({
         )}
 
         <div className="grid grid-cols-2 gap-3">
-          <label className="flex flex-col gap-1">
-            <span className="text-xs text-ink-dim">Rate (%)</span>
-            <input
-              type="number"
-              name="commission_rate_percent"
-              min="0"
-              step="0.01"
-              value={effectiveRate}
-              onChange={(e) => setRateOverride(e.target.value)}
-              className="text-sm border border-line rounded-md px-3 py-2 bg-paper-raised font-mono"
-            />
-          </label>
-          <label className="flex flex-col gap-1">
+          {!computed.isFlat && (
+            <label className="flex flex-col gap-1">
+              <span className="text-xs text-ink-dim">Rate (%)</span>
+              <input
+                type="number"
+                name="commission_rate_percent"
+                min="0"
+                step="0.01"
+                value={effectiveRate}
+                onChange={(e) => setRateOverride(e.target.value)}
+                className="text-sm border border-line rounded-md px-3 py-2 bg-paper-raised font-mono"
+              />
+            </label>
+          )}
+          <label className={computed.isFlat ? "col-span-2 flex flex-col gap-1" : "flex flex-col gap-1"}>
             <span className="text-xs text-ink-dim">Commission (ZAR)</span>
             <input
               type="number"
@@ -112,7 +150,9 @@ export function OutcomeControls({
           </label>
         </div>
         <p className="text-[11px] text-ink-dim">
-          Auto-calculated from your commission tier table — override either field if this one&rsquo;s different.
+          {computed.isFlat
+            ? "Flat amount from your commission rate table — override if this deal is a manual exception."
+            : "Auto-calculated from your commission tier table — override either field if this one's different."}
         </p>
 
         <div className="flex gap-2">

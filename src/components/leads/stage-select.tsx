@@ -1,39 +1,48 @@
 "use client";
 
 import { updateDealStageAction } from "@/lib/actions";
-import { STAGE_META } from "@/lib/constants";
-import type { DealStage } from "@/lib/types";
+import { isTerminalStage } from "@/lib/stages";
+import type { PipelineStage } from "@/lib/types";
 import { useTransition } from "react";
 
-const EDITABLE_STAGES: DealStage[] = ["new", "contacted", "meeting", "demo", "quotation"];
-
-export function StageSelect({ dealId, stage }: { dealId: string; stage: DealStage }) {
+export function StageSelect({
+  dealId,
+  stage,
+  stages,
+  workspaceSlug,
+}: {
+  dealId: string;
+  stage: string;
+  stages: PipelineStage[];
+  workspaceSlug: string;
+}) {
   const [isPending, startTransition] = useTransition();
-  const isTerminal = stage === "won" || stage === "lost";
 
-  if (isTerminal) {
+  if (isTerminalStage(stage)) {
     return (
       <span className="text-xs font-mono uppercase tracking-wide text-ink-dim">
-        {STAGE_META[stage].label} — stage is closed
+        {stage === "won" ? "Won" : "Lost"} — stage is closed
       </span>
     );
   }
+
+  const ordered = [...stages].sort((a, b) => a.sort_order - b.sort_order);
 
   return (
     <select
       value={stage}
       disabled={isPending}
       onChange={(e) => {
-        const next = e.target.value as DealStage;
+        const next = e.target.value;
         startTransition(() => {
-          updateDealStageAction(dealId, next);
+          updateDealStageAction(dealId, next, workspaceSlug);
         });
       }}
       className="text-sm border border-line rounded-md px-3 py-1.5 bg-paper-raised text-ink disabled:opacity-50"
     >
-      {EDITABLE_STAGES.map((s) => (
-        <option key={s} value={s}>
-          {STAGE_META[s].label}
+      {ordered.map((s) => (
+        <option key={s.key} value={s.key}>
+          {s.label}
         </option>
       ))}
     </select>
