@@ -90,7 +90,7 @@ export default async function NewDealPage({ params }: { params: Promise<{ worksp
               <Input id="contact_title" name="contact_title" placeholder={workspace.requires_organization ? "e.g. Test Engineer" : "Optional"} />
             </Field>
             <Field label="Email" htmlFor="contact_email">
-              <Input id="contact_email" name="contact_email" type="email" />
+              <Input id="contact_email" name="contact_email" type="text" placeholder="name@example.com" />
             </Field>
             <Field label="Phone" htmlFor="contact_phone">
               <Input id="contact_phone" name="contact_phone" type="tel" />

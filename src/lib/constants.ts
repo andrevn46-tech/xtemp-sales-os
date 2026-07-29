@@ -15,6 +15,35 @@ export const INDUSTRY_META: Record<Industry, string> = {
   general_industrial: "General Industrial",
 };
 
+// "How did you meet them?" options — different per workspace since XTEMP's
+// enterprise channels don't match We Buy Clubz's mostly-Facebook pipeline.
+export const CONTACT_SOURCES_BY_WORKSPACE: Record<string, { value: string; label: string }[]> = {
+  xtemp: [
+    { value: "cold_outreach", label: "Cold outreach" },
+    { value: "referral", label: "Referral" },
+    { value: "trade_event", label: "Trade event" },
+    { value: "inbound", label: "Inbound" },
+    { value: "walk_in", label: "Walk-in / on-site visit" },
+  ],
+  "we-buy-clubz": [
+    { value: "facebook_marketplace", label: "Facebook Marketplace" },
+    { value: "company_routed", label: "Company-routed lead" },
+    { value: "referral", label: "Referral" },
+    { value: "walk_in", label: "Walk-in / shop visit" },
+    { value: "coach_course", label: "Coach / course outreach" },
+  ],
+};
+
+export function contactSourcesFor(workspaceSlug: string): { value: string; label: string }[] {
+  return (
+    CONTACT_SOURCES_BY_WORKSPACE[workspaceSlug] ?? [
+      { value: "cold_outreach", label: "Cold outreach" },
+      { value: "referral", label: "Referral" },
+      { value: "inbound", label: "Inbound" },
+    ]
+  );
+}
+
 // Product / item categories shown as checkboxes on the deal form. Different
 // per workspace since XTEMP sells instrumentation and We Buy Clubz sells
 // golf equipment. Keyed by workspace slug.
