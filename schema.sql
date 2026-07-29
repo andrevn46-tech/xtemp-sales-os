@@ -143,7 +143,10 @@ create table if not exists commission_tiers (
 );
 
 -- Migrating a commission_tiers table that predates sale-type/flat-amount
--- support. Safe to re-run.
+-- support, or predates workspaces entirely. Safe to re-run.
+alter table commission_tiers add column if not exists workspace_id uuid references workspaces(id);
+update commission_tiers set workspace_id = (select id from workspaces where slug = 'xtemp') where workspace_id is null;
+alter table commission_tiers alter column workspace_id set not null;
 alter table commission_tiers add column if not exists sale_type text;
 alter table commission_tiers drop constraint if exists commission_tiers_sale_type_check;
 alter table commission_tiers add constraint commission_tiers_sale_type_check
@@ -260,10 +263,6 @@ alter table contacts alter column workspace_id set not null;
 alter table deals add column if not exists workspace_id uuid references workspaces(id);
 update deals set workspace_id = (select id from workspaces where slug = 'xtemp') where workspace_id is null;
 alter table deals alter column workspace_id set not null;
-
-alter table commission_tiers add column if not exists workspace_id uuid references workspaces(id);
-update commission_tiers set workspace_id = (select id from workspaces where slug = 'xtemp') where workspace_id is null;
-alter table commission_tiers alter column workspace_id set not null;
 
 -- deals.organization_id used to be required — "We Buy Clubz" deals have no
 -- company, so it's now optional. Also drop the old fixed stage list, since
